@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Thinking</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #04060d;
+    --orb-core:  #0af0c8;
+    --orb-mid:   #0070ff;
+    --orb-edge:  #8b00ff;
+    --pulse:     #ffffff;
+    --text-dim:  #2a3a55;
+    --text-mid:  #4a7fa0;
+    --text-hi:   #a0e8d8;
+    --scanline:  rgba(0,240,200,0.025);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      var(--scanline) 3px,
+      var(--scanline) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  canvas {
+    display: block;
+    width: 800px;
+    height: 800px;
+  }
+
+  .panel {
+    width: 800px;
+    padding: 0 48px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: -28px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .bar-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    width: 96px;
+    flex-shrink: 0;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 2px;
+    background: var(--text-dim);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, var(--orb-mid), var(--orb-core));
+    width: 0%;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+
+  .bar-pct {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text-mid);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .task-wrap {
+    margin-top: 4px;
+    height: 26px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .task-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-hi);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    position: absolute;
+    left: 0;
+    white-space: nowrap;
+  }
+
+  .task-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .corner {
+    position: absolute;
+    width: 22px; height: 22px;
+    border-color: var(--orb-mid);
+    border-style: solid;
+    opacity: 0.5;
+  }
+  .corner.tl { top: 0; left: 0; border-width: 1.5px 0 0 1.5px; }
+  .corner.tr { top: 0; right: 0; border-width: 1.5px 1.5px 0 0; }
+  .corner.bl { bottom: 0; left: 0; border-width: 0 0 1.5px 1.5px; }
+  .corner.br { bottom: 0; right: 0; border-width: 0 1.5px 1.5px 0; }
+
+  .cursor {
+    display: inline-block;
+    width: 6px; height: 12px;
+    background: var(--orb-core);
+    margin-left: 5px;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* Switch para Binaural Zen y Natural Sounds */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 68px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--text-dim);
+    transition: .4s;
+    border-radius: 34px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px; width: 18px;
+    left: 4px; bottom: 4px;
+    background-color: var(--text-mid);
+    transition: .4s;
+    border-radius: 50%;
+  }
+  input:checked + .slider {
+    background: linear-gradient(90deg, var(--orb-mid), var(--orb-core));
+  }
+  input:checked + .slider:before {
+    transform: translateX(40px);
+    background-color: var(--orb-core);
+  }
+
+  /* Natural Sounds section divider */
+  .section-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--text-dim), transparent);
+    margin: 2px 0;
+    opacity: 0.6;
+  }
+
+  /* Natural Sounds dropdown */
+  .ns-select {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--text-dim);
+    color: var(--text-mid);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 2px 4px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%234a7fa0'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    padding-right: 18px;
+    transition: border-color 0.3s, color 0.3s;
+  }
+  .ns-select:hover, .ns-select:focus {
+    border-bottom-color: var(--orb-core);
+    color: var(--text-hi);
+  }
+  .ns-select option {
+    background: #0a1020;
+    color: var(--text-mid);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+  }
+
+  /* Natural Sounds volume slider */
+  .ns-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .ns-vol-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .ns-range {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2px;
+    background: var(--text-dim);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+  }
+  .ns-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--orb-core);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(10,240,200,0.5);
+    transition: box-shadow 0.2s;
+  }
+  .ns-range::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 12px rgba(10,240,200,0.8);
+  }
+  .ns-range::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--orb-core);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 6px rgba(10,240,200,0.5);
+  }
+  .ns-range::-webkit-slider-runnable-track {
+    background: linear-gradient(90deg, var(--orb-mid) var(--track-fill, 50%), var(--text-dim) var(--track-fill, 50%));
+    height: 2px;
+    border-radius: 2px;
+  }
+  .ns-vol-pct {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text-mid);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Section label for NATURAL SOUNDS group */
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding-bottom: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <canvas id="c" width="800" height="800"></canvas>
+
+  <div class="panel">
+    <!-- Progress bars -->
+    <div class="bar-row">
+      <span class="bar-label">Neural Load</span>
+      <div class="bar-track"><div class="bar-fill" id="b1"></div></div>
+      <span class="bar-pct" id="p1">0%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Vector Idx</span>
+      <div class="bar-track"><div class="bar-fill" id="b2"></div></div>
+      <span class="bar-pct" id="p2">0%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Coherence</span>
+      <div class="bar-track"><div class="bar-fill" id="b3"></div></div>
+      <span class="bar-pct" id="p3">0%</span>
+    </div>
+
+    <!-- Binaural Zen Control -->
+    <div class="bar-row">
+      <span class="bar-label">BINAURAL ZEN</span>
+      <label class="switch">
+        <input type="checkbox" id="zen-toggle">
+        <span class="slider"></span>
+      </label>
+      <span class="bar-pct" id="zen-status">OFF</span>
+    </div>
+
+    <!-- Divider -->
+    <div class="section-divider"></div>
+
+    <!-- NATURAL SOUNDS: Toggle + Sound Selector -->
+    <div class="bar-row">
+      <span class="bar-label">NAT. SOUNDS</span>
+      <label class="switch">
+        <input type="checkbox" id="ns-toggle">
+        <span class="slider"></span>
+      </label>
+      <select class="ns-select" id="ns-select">
+        <option value="">— SELECT —</option>
+        <option value="https://cdn.pixabay.com/audio/2022/03/10/audio_1e94a5e3d4.mp3">Lluvia Suave</option>
+        <option value="https://cdn.pixabay.com/audio/2021/09/06/audio_166e9f0c6d.mp3">Río Tranquilo</option>
+        <option value="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3">Cascada</option>
+        <option value="https://cdn.pixabay.com/audio/2022/03/15/audio_4df8845c22.mp3">Sonidos del Bosque</option>
+        <option value="https://cdn.pixabay.com/audio/2022/10/30/audio_bbc04f3e56.mp3">Sonidos Nocturnos</option>
+        <option value="https://cdn.pixabay.com/audio/2022/01/18/audio_d0c6ff1bab.mp3">Chimenea Crepitante</option>
+        <option value="https://cdn.pixabay.com/audio/2022/03/24/audio_5e84a7b0de.mp3">Olas del Mar</option>
+        <option value="https://cdn.pixabay.com/audio/2021/08/09/audio_dc39bde808.mp3">Tormenta Suave</option>
+        <option value="https://cdn.pixabay.com/audio/2022/06/07/audio_b9bab7a5fc.mp3">Agua en Movimiento</option>
+      </select>
+    </div>
+
+    <!-- NATURAL SOUNDS: Volume -->
+    <div class="bar-row">
+      <span class="bar-label">NAT. VOLUME</span>
+      <div class="ns-slider-wrap">
+        <input type="range" class="ns-range" id="ns-volume" min="0" max="100" value="60">
+      </div>
+      <span class="ns-vol-pct" id="ns-vol-pct">60%</span>
+    </div>
+
+    <!-- Task text -->
+    <div class="task-wrap">
+      <span class="task-text" id="task"></span>
+      <span class="cursor"></span>
+    </div>
+  </div>
+
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+</div>
+
+<script>
+// ====================== CANVAS 3D ORB ======================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const CX = W / 2, CY = H / 2;
+const R = 200;
+const N = 320;
+
+function fibSphere(n) {
+  const pts = [];
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < n; i++) {
+    const y = 1 - (i / (n - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const theta = golden * i;
+    pts.push({ x: Math.cos(theta) * r, y, z: Math.sin(theta) * r });
+  }
+  return pts;
+}
+const basePts = fibSphere(N);
+
+const pulses = Array.from({ length: 4 }, (_, i) => ({
+  phase: i / 4,
+  speed: 0.0006 + i * 0.00015,
+  axis: { x: Math.random() - 0.5, y: Math.random() - 0.5, z: Math.random() - 0.5 }
+}));
+pulses.forEach(p => {
+  const len = Math.hypot(p.axis.x, p.axis.y, p.axis.z);
+  p.axis.x /= len; p.axis.y /= len; p.axis.z /= len;
+});
+
+let rotX = 0, rotY = 0;
+const velX = 0.0004, velY = 0.0009;
+
+function rotateX(p, a) { const c = Math.cos(a), s = Math.sin(a); return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c }; }
+function rotateY(p, a) { const c = Math.cos(a), s = Math.sin(a); return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c }; }
+function project(p) {
+  const fov = 900;
+  const scale = fov / (fov + p.z * R);
+  return { sx: CX + p.x * R * scale, sy: CY + p.y * R * scale, depth: (p.z + 1) / 2 };
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function dotColour(depth, pulse01) {
+  const r = Math.round(lerp(0, 60, depth) + pulse01 * 160);
+  const g = Math.round(lerp(60, 240, depth) + pulse01 * 60);
+  const b = Math.round(lerp(200, 180, depth));
+  return `rgb(${Math.min(r,255)},${Math.min(g,255)},${Math.min(b,255)})`;
+}
+function pulseDot(q, axis, phase) {
+  const d = q.x * axis.x + q.y * axis.y + q.z * axis.z;
+  const ang = Math.acos(Math.max(-1, Math.min(1, d)));
+  const norm = ang / Math.PI;
+  const dist = Math.abs(norm - phase);
+  return Math.max(0, 1 - Math.min(dist, 1 - dist) / 0.08);
+}
+
+let glowCache = null;
+function getGlow() {
+  if (glowCache) return glowCache;
+  const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, R * 1.35);
+  g.addColorStop(0, 'rgba(10,240,200,0.12)');
+  g.addColorStop(0.45, 'rgba(0,112,255,0.10)');
+  g.addColorStop(0.85, 'rgba(139,0,255,0.05)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  glowCache = g;
+  return g;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = getGlow();
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.beginPath(); ctx.arc(CX, CY, R + 18, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0,112,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX, CY, R + 26, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0,240,200,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
+
+  pulses.forEach(p => p.phase = (p.phase + p.speed) % 1);
+
+  const drawn = basePts.map(pt => {
+    let q = rotateX(pt, rotX);
+    q = rotateY(q, rotY);
+    const proj = project(q);
+    const pval = pulses.reduce((acc, p) => acc + pulseDot(q, p.axis, p.phase), 0);
+    return { ...proj, depth: (q.z + 1)/2, pulse: Math.min(pval, 1) };
+  });
+
+  drawn.sort((a, b) => a.depth - b.depth);
+
+  drawn.forEach(d => {
+    const r = lerp(0.8, 2.8, d.depth) + d.pulse * 2.5;
+    const alpha = lerp(0.12, 0.9, d.depth) + d.pulse * 0.3;
+    const col = dotColour(d.depth, d.pulse);
+
+    if (d.pulse > 0.05) {
+      const gp = ctx.createRadialGradient(d.sx, d.sy, 0, d.sx, d.sy, r * 6);
+      gp.addColorStop(0, `rgba(200,255,240,${d.pulse * 0.5})`);
+      gp.addColorStop(0.4, `rgba(0,240,200,${d.pulse * 0.25})`);
+      gp.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(d.sx, d.sy, r * 6, 0, Math.PI * 2); ctx.fillStyle = gp; ctx.fill();
+    }
+
+    ctx.beginPath(); ctx.arc(d.sx, d.sy, r, 0, Math.PI * 2);
+    ctx.globalAlpha = Math.min(alpha, 1);
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  ctx.strokeStyle = 'rgba(0,240,200,0.08)'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(CX, CY - R - 40); ctx.lineTo(CX, CY + R + 40); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(CX - R - 40, CY); ctx.lineTo(CX + R + 40, CY); ctx.stroke();
+
+  rotX += velX;
+  rotY += velY;
+}
+
+// ====================== PROGRESS BARS ======================
+const bars = [
+  { fill: document.getElementById('b1'), pct: document.getElementById('p1'), v: 0, target: 88 },
+  { fill: document.getElementById('b2'), pct: document.getElementById('p2'), v: 0, target: 74 },
+  { fill: document.getElementById('b3'), pct: document.getElementById('p3'), v: 0, target: 95 }
+];
+
+function tickBars() {
+  bars.forEach(b => {
+    b.v += (b.target - b.v) * 0.012;
+    if (Math.abs(b.v - b.target) < 0.6) b.target = 55 + Math.random() * 44;
+    b.fill.style.width = b.v + '%';
+    b.pct.textContent = Math.round(b.v) + '%';
+  });
+}
+
+// ====================== TASKS ======================
+const TASKS = [
+  'Analyzing context…', 'Searching vector space…', 'Optimizing response…',
+  'Expanding token graph…', 'Cross-referencing embeddings…', 'Calibrating attention heads…',
+  'Pruning beam candidates…', 'Resolving semantic drift…', 'Sampling latent manifold…',
+  'Aggregating confidence scores…', 'Reranking retrieved passages…', 'Synthesizing final output…'
+];
+let taskIdx = 0;
+const taskEl = document.getElementById('task');
+function nextTask() {
+  taskEl.classList.remove('visible');
+  setTimeout(() => {
+    taskIdx = (taskIdx + 1) % TASKS.length;
+    taskEl.textContent = TASKS[taskIdx];
+    taskEl.classList.add('visible');
+  }, 400);
+}
+taskEl.textContent = TASKS[0];
+setTimeout(() => taskEl.classList.add('visible'), 300);
+setInterval(nextTask, 2400);
+
+// ====================== BINAURAL ZEN AUDIO ======================
+let audioCtx = null;
+let leftOsc = null;
+let rightOsc = null;
+let binauralGain = null;
+
+function initBinaural() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function enableBinaural() {
+  initBinaural();
+  if (leftOsc) return;
+
+  leftOsc = audioCtx.createOscillator();
+  rightOsc = audioCtx.createOscillator();
+  binauralGain = audioCtx.createGain();
+
+  leftOsc.type = rightOsc.type = 'sine';
+  leftOsc.frequency.value = 200;
+  rightOsc.frequency.value = 206;   // 6 Hz theta - muy relajante y ZEN
+
+  const leftPan = audioCtx.createStereoPanner();
+  const rightPan = audioCtx.createStereoPanner();
+  leftPan.pan.value = -0.85;
+  rightPan.pan.value = 0.85;
+
+  leftOsc.connect(leftPan).connect(binauralGain);
+  rightOsc.connect(rightPan).connect(binauralGain);
+  binauralGain.connect(audioCtx.destination);
+
+  leftOsc.start();
+  rightOsc.start();
+  binauralGain.gain.value = 0;
+}
+
+// ====================== CONTROLES BINAURAL ======================
+const zenToggle = document.getElementById('zen-toggle');
+const zenStatus = document.getElementById('zen-status');
+
+zenToggle.addEventListener('change', () => {
+  if (zenToggle.checked) {
+    enableBinaural();
+    binauralGain.gain.setTargetAtTime(0.08, audioCtx.currentTime, 1.5); // volumen suave
+    zenStatus.textContent = "ON";
+  } else if (binauralGain) {
+    binauralGain.gain.setTargetAtTime(0, audioCtx.currentTime, 1.5);
+    zenStatus.textContent = "OFF";
+  }
+});
+
+// ====================== NATURAL SOUNDS AUDIO ======================
+let nsAudioCtx = null;
+let nsAudioEl = null;
+let nsSource = null;
+let nsGainNode = null;
+let nsCurrentUrl = '';
+let nsActive = false;
+let nsFadeTimer = null;
+
+const FADE_TIME = 0.9; // segundos de fade
+
+function initNsCtx() {
+  if (nsAudioCtx) return;
+  nsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  nsGainNode = nsAudioCtx.createGain();
+  nsGainNode.gain.value = 0;
+  nsGainNode.connect(nsAudioCtx.destination);
+}
+
+function getNsVolume() {
+  return parseInt(document.getElementById('ns-volume').value) / 100;
+}
+
+function fadeIn() {
+  if (!nsGainNode) return;
+  const target = getNsVolume();
+  nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
+  nsGainNode.gain.setValueAtTime(nsGainNode.gain.value, nsAudioCtx.currentTime);
+  nsGainNode.gain.linearRampToValueAtTime(target, nsAudioCtx.currentTime + FADE_TIME);
+}
+
+function fadeOut(callback) {
+  if (!nsGainNode) { if (callback) callback(); return; }
+  nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
+  nsGainNode.gain.setValueAtTime(nsGainNode.gain.value, nsAudioCtx.currentTime);
+  nsGainNode.gain.linearRampToValueAtTime(0, nsAudioCtx.currentTime + FADE_TIME);
+  if (callback) {
+    clearTimeout(nsFadeTimer);
+    nsFadeTimer = setTimeout(callback, FADE_TIME * 1000 + 50);
+  }
+}
+
+function stopNsAudio(callback) {
+  if (!nsAudioEl) { if (callback) callback(); return; }
+  fadeOut(() => {
+    if (nsAudioEl) {
+      nsAudioEl.pause();
+      nsAudioEl.src = '';
+    }
+    if (nsSource) {
+      try { nsSource.disconnect(); } catch(e) {}
+      nsSource = null;
+    }
+    if (callback) callback();
+  });
+}
+
+function playNsSound(url) {
+  if (!url) return;
+  initNsCtx();
+
+  if (nsAudioCtx.state === 'suspended') {
+    nsAudioCtx.resume();
+  }
+
+  const startSound = () => {
+    // Crear nuevo elemento de audio
+    const el = new Audio();
+    el.crossOrigin = 'anonymous';
+    el.loop = true;
+    el.src = url;
+
+    const src = nsAudioCtx.createMediaElementSource(el);
+    src.connect(nsGainNode);
+
+    nsAudioEl = el;
+    nsSource = src;
+    nsCurrentUrl = url;
+
+    el.play().then(() => {
+      fadeIn();
+    }).catch(err => {
+      console.warn('Natural sound playback error:', err);
+    });
+  };
+
+  if (nsAudioEl && !nsAudioEl.paused) {
+    // Hay sonido reproduciéndose: fade out → swap → fade in
+    fadeOut(() => {
+      if (nsSource) { try { nsSource.disconnect(); } catch(e) {} nsSource = null; }
+      if (nsAudioEl) { nsAudioEl.pause(); nsAudioEl.src = ''; nsAudioEl = null; }
+      startSound();
+    });
+  } else {
+    // No hay sonido o estaba pausado
+    if (nsAudioEl) {
+      try { if (nsSource) nsSource.disconnect(); } catch(e) {}
+      nsAudioEl.pause();
+      nsAudioEl.src = '';
+      nsAudioEl = null;
+      nsSource = null;
+    }
+    startSound();
+  }
+}
+
+// ====================== CONTROLES NATURAL SOUNDS ======================
+const nsToggle = document.getElementById('ns-toggle');
+const nsSelect = document.getElementById('ns-select');
+const nsVolRange = document.getElementById('ns-volume');
+const nsVolPct = document.getElementById('ns-vol-pct');
+
+// Actualizar porcentaje y track del slider
+function updateNsSliderUI() {
+  const val = nsVolRange.value;
+  nsVolPct.textContent = val + '%';
+  nsVolRange.style.setProperty('--track-fill', val + '%');
+}
+updateNsSliderUI();
+
+nsToggle.addEventListener('change', () => {
+  initNsCtx();
+  if (nsAudioCtx.state === 'suspended') nsAudioCtx.resume();
+
+  if (nsToggle.checked) {
+    nsActive = true;
+    const url = nsSelect.value;
+    if (url) {
+      playNsSound(url);
+    }
+  } else {
+    nsActive = false;
+    stopNsAudio();
+  }
+});
+
+nsSelect.addEventListener('change', () => {
+  const url = nsSelect.value;
+  if (!url) {
+    // Seleccionó "— SELECT —": apagar
+    if (nsActive) {
+      stopNsAudio();
+      nsToggle.checked = false;
+      nsActive = false;
+    }
+    return;
+  }
+  if (nsToggle.checked && nsActive) {
+    // Ya activo: cambiar sonido con crossfade
+    playNsSound(url);
+  }
+});
+
+nsVolRange.addEventListener('input', () => {
+  updateNsSliderUI();
+  if (nsGainNode && nsActive && nsAudioEl && !nsAudioEl.paused) {
+    const target = getNsVolume();
+    nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
+    nsGainNode.gain.setTargetAtTime(target, nsAudioCtx.currentTime, 0.1);
+  }
+});
+
+// ====================== MAIN LOOP ======================
+let last = 0;
+function loop(t) {
+  if (t - last > 14) {
+    draw();
+    tickBars();
+    last = t;
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
