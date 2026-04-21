@@ -600,45 +600,50 @@ zenToggle.addEventListener('change', () => {
 });
 
 // ====================== NATURAL SOUNDS AUDIO ======================
-let nsAudioCtx = null;
+// Uses native HTMLAudioElement (no crossOrigin / Web Audio API routing)
+// to avoid CORS blocking on orangefreesounds.com and similar hosts.
 let nsAudioEl = null;
-let nsSource = null;
-let nsGainNode = null;
 let nsCurrentUrl = '';
 let nsActive = false;
 let nsFadeTimer = null;
+let nsFadeFrame = null;
 
-const FADE_TIME = 0.9; // segundos de fade
-
-function initNsCtx() {
-  if (nsAudioCtx) return;
-  nsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  nsGainNode = nsAudioCtx.createGain();
-  nsGainNode.gain.value = 0;
-  nsGainNode.connect(nsAudioCtx.destination);
-}
+const FADE_TIME = 900; // ms
 
 function getNsVolume() {
   return parseInt(document.getElementById('ns-volume').value) / 100;
 }
 
+function animateFade(fromVol, toVol, duration, onDone) {
+  // Cancel any running fade
+  if (nsFadeFrame) { cancelAnimationFrame(nsFadeFrame); nsFadeFrame = null; }
+  clearTimeout(nsFadeTimer);
+
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const vol = fromVol + (toVol - fromVol) * t;
+    if (nsAudioEl) nsAudioEl.volume = Math.max(0, Math.min(1, vol));
+    if (t < 1) {
+      nsFadeFrame = requestAnimationFrame(step);
+    } else {
+      nsFadeFrame = null;
+      if (onDone) onDone();
+    }
+  }
+  nsFadeFrame = requestAnimationFrame(step);
+}
+
 function fadeIn() {
-  if (!nsGainNode) return;
+  if (!nsAudioEl) return;
   const target = getNsVolume();
-  nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
-  nsGainNode.gain.setValueAtTime(nsGainNode.gain.value, nsAudioCtx.currentTime);
-  nsGainNode.gain.linearRampToValueAtTime(target, nsAudioCtx.currentTime + FADE_TIME);
+  animateFade(0, target, FADE_TIME, null);
 }
 
 function fadeOut(callback) {
-  if (!nsGainNode) { if (callback) callback(); return; }
-  nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
-  nsGainNode.gain.setValueAtTime(nsGainNode.gain.value, nsAudioCtx.currentTime);
-  nsGainNode.gain.linearRampToValueAtTime(0, nsAudioCtx.currentTime + FADE_TIME);
-  if (callback) {
-    clearTimeout(nsFadeTimer);
-    nsFadeTimer = setTimeout(callback, FADE_TIME * 1000 + 50);
-  }
+  if (!nsAudioEl) { if (callback) callback(); return; }
+  const from = nsAudioEl.volume;
+  animateFade(from, 0, FADE_TIME, callback);
 }
 
 function stopNsAudio(callback) {
@@ -647,10 +652,7 @@ function stopNsAudio(callback) {
     if (nsAudioEl) {
       nsAudioEl.pause();
       nsAudioEl.src = '';
-    }
-    if (nsSource) {
-      try { nsSource.disconnect(); } catch(e) {}
-      nsSource = null;
+      nsAudioEl = null;
     }
     if (callback) callback();
   });
@@ -658,24 +660,15 @@ function stopNsAudio(callback) {
 
 function playNsSound(url) {
   if (!url) return;
-  initNsCtx();
-
-  if (nsAudioCtx.state === 'suspended') {
-    nsAudioCtx.resume();
-  }
 
   const startSound = () => {
-    // Crear nuevo elemento de audio
     const el = new Audio();
-    el.crossOrigin = 'anonymous';
+    // NO crossOrigin — omitirlo evita que el navegador exija cabeceras CORS
     el.loop = true;
+    el.volume = 0;
     el.src = url;
 
-    const src = nsAudioCtx.createMediaElementSource(el);
-    src.connect(nsGainNode);
-
     nsAudioEl = el;
-    nsSource = src;
     nsCurrentUrl = url;
 
     el.play().then(() => {
@@ -688,19 +681,11 @@ function playNsSound(url) {
   if (nsAudioEl && !nsAudioEl.paused) {
     // Hay sonido reproduciéndose: fade out → swap → fade in
     fadeOut(() => {
-      if (nsSource) { try { nsSource.disconnect(); } catch(e) {} nsSource = null; }
       if (nsAudioEl) { nsAudioEl.pause(); nsAudioEl.src = ''; nsAudioEl = null; }
       startSound();
     });
   } else {
-    // No hay sonido o estaba pausado
-    if (nsAudioEl) {
-      try { if (nsSource) nsSource.disconnect(); } catch(e) {}
-      nsAudioEl.pause();
-      nsAudioEl.src = '';
-      nsAudioEl = null;
-      nsSource = null;
-    }
+    if (nsAudioEl) { nsAudioEl.pause(); nsAudioEl.src = ''; nsAudioEl = null; }
     startSound();
   }
 }
@@ -720,9 +705,6 @@ function updateNsSliderUI() {
 updateNsSliderUI();
 
 nsToggle.addEventListener('change', () => {
-  initNsCtx();
-  if (nsAudioCtx.state === 'suspended') nsAudioCtx.resume();
-
   if (nsToggle.checked) {
     nsActive = true;
     const url = nsSelect.value;
@@ -754,10 +736,9 @@ nsSelect.addEventListener('change', () => {
 
 nsVolRange.addEventListener('input', () => {
   updateNsSliderUI();
-  if (nsGainNode && nsActive && nsAudioEl && !nsAudioEl.paused) {
-    const target = getNsVolume();
-    nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
-    nsGainNode.gain.setTargetAtTime(target, nsAudioCtx.currentTime, 0.1);
+  // Actualizar volumen en tiempo real si hay audio reproduciéndose
+  if (nsActive && nsAudioEl && !nsAudioEl.paused) {
+    nsAudioEl.volume = getNsVolume();
   }
 });
 
