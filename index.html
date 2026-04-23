@@ -26,7 +26,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   body::after {
@@ -34,10 +35,8 @@
     position: fixed; inset: 0;
     background: repeating-linear-gradient(
       0deg,
-      transparent,
-      transparent 3px,
-      var(--scanline) 3px,
-      var(--scanline) 4px
+      transparent, transparent 3px,
+      var(--scanline) 3px, var(--scanline) 4px
     );
     pointer-events: none;
     z-index: 10;
@@ -47,95 +46,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
+    width: 100%;
+    max-width: 800px;
+    position: relative;
+  }
+
+  /* Canvas wrapper enforces 1:1 aspect ratio responsively */
+  .canvas-wrap {
+    width: 100%;
+    aspect-ratio: 1 / 1;
     position: relative;
   }
 
   canvas {
     display: block;
-    width: 800px;
-    height: 800px;
-  }
-
-  .panel {
-    width: 800px;
-    padding: 0 48px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-top: -28px;
-    position: relative;
-    z-index: 2;
-    max-height: 400px;
-  }
-
-  .bar-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .bar-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--text-mid);
-    width: 96px;
-    flex-shrink: 0;
-  }
-
-  .bar-track {
-    flex: 1;
-    height: 2px;
-    background: var(--text-dim);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .bar-fill {
-    position: absolute;
-    top: 0; left: 0;
+    width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, var(--orb-mid), var(--orb-core));
-    width: 0%;
-    transition: width 0.6s cubic-bezier(.4,0,.2,1);
-  }
-
-  .bar-pct {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    color: var(--text-mid);
-    width: 32px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  .task-wrap {
-    margin-top: 4px;
-    height: 26px;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .task-text {
-    font-family: 'Syne', sans-serif;
-    font-weight: 300;
-    font-size: 13px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--text-hi);
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    position: absolute;
-    left: 0;
-    white-space: nowrap;
-  }
-
-  .task-text.visible {
-    opacity: 1;
-    transform: translateY(0);
   }
 
   .corner {
@@ -144,35 +70,75 @@
     border-color: var(--orb-mid);
     border-style: solid;
     opacity: 0.5;
+    z-index: 2;
   }
   .corner.tl { top: 0; left: 0; border-width: 1.5px 0 0 1.5px; }
   .corner.tr { top: 0; right: 0; border-width: 1.5px 1.5px 0 0; }
   .corner.bl { bottom: 0; left: 0; border-width: 0 0 1.5px 1.5px; }
   .corner.br { bottom: 0; right: 0; border-width: 0 1.5px 1.5px 0; }
 
-  .cursor {
-    display: inline-block;
-    width: 6px; height: 12px;
-    background: var(--orb-core);
-    margin-left: 5px;
-    vertical-align: middle;
-    animation: blink 1s step-end infinite;
+  /* ── Panel ── */
+  .panel {
+    width: 100%;
+    padding: 0 clamp(16px, 6vw, 48px) clamp(16px, 4vw, 32px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.5vw, 14px);
+    margin-top: -28px;
+    position: relative;
+    z-index: 2;
   }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-  /* Switch para Binaural Zen y Natural Sounds */
+  .section-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--text-dim), transparent);
+    margin: 2px 0;
+    opacity: 0.6;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding-bottom: 2px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 1.5vw, 12px);
+  }
+
+  .bar-label {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(7px, 1.2vw, 9px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    width: clamp(72px, 12vw, 96px);
+    flex-shrink: 0;
+  }
+
+  .bar-pct {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(7px, 1.2vw, 9px);
+    color: var(--text-mid);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Toggle switch ── */
   .switch {
     position: relative;
     display: inline-block;
-    width: 68px;
-    height: 26px;
+    width: 68px; height: 26px;
     flex-shrink: 0;
   }
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
+  .switch input { opacity: 0; width: 0; height: 0; }
   .slider {
     position: absolute;
     cursor: pointer;
@@ -190,24 +156,52 @@
     transition: .4s;
     border-radius: 50%;
   }
-  input:checked + .slider {
-    background: linear-gradient(90deg, var(--orb-mid), var(--orb-core));
+  input:checked + .slider { background: linear-gradient(90deg, var(--orb-mid), var(--orb-core)); }
+  input:checked + .slider:before { transform: translateX(40px); background-color: var(--orb-core); }
+
+  /* ── Generic range ── */
+  .ctl-range {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2px;
+    background: linear-gradient(90deg, var(--orb-mid) var(--rf, 50%), var(--text-dim) var(--rf, 50%));
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    min-width: 0;
   }
-  input:checked + .slider:before {
-    transform: translateX(40px);
-    background-color: var(--orb-core);
+  .ctl-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--orb-core);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(10,240,200,0.5);
+    transition: box-shadow 0.2s;
+  }
+  .ctl-range::-webkit-slider-thumb:hover { box-shadow: 0 0 12px rgba(10,240,200,0.8); }
+  .ctl-range::-moz-range-thumb {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--orb-core);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 6px rgba(10,240,200,0.5);
   }
 
-  /* Natural Sounds section divider */
-  .section-divider {
-    width: 100%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--text-dim), transparent);
-    margin: 2px 0;
-    opacity: 0.6;
+  /* ── Color strip preview (next to hue slider) ── */
+  .color-strip {
+    width: 18px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    pointer-events: none;
+    border: 1px solid var(--text-dim);
   }
 
-  /* Natural Sounds dropdown */
+  /* ── Nat. sounds select ── */
   .ns-select {
     flex: 1;
     background: transparent;
@@ -215,10 +209,10 @@
     border-bottom: 1px solid var(--text-dim);
     color: var(--text-mid);
     font-family: 'Space Mono', monospace;
-    font-size: 9px;
+    font-size: clamp(7px, 1.2vw, 9px);
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    padding: 2px 4px;
+    padding: 2px 18px 2px 4px;
     cursor: pointer;
     outline: none;
     appearance: none;
@@ -226,164 +220,227 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%234a7fa0'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 4px center;
-    padding-right: 18px;
+    background-color: transparent;
     transition: border-color 0.3s, color 0.3s;
+    min-width: 0;
   }
-  .ns-select:hover, .ns-select:focus {
-    border-bottom-color: var(--orb-core);
-    color: var(--text-hi);
-  }
-  .ns-select option {
-    background: #0a1020;
-    color: var(--text-mid);
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-  }
+  .ns-select:hover, .ns-select:focus { border-bottom-color: var(--orb-core); color: var(--text-hi); }
+  .ns-select option { background: #0a1020; color: var(--text-mid); }
 
-  /* Natural Sounds volume slider */
-  .ns-slider-wrap {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-  }
-  .ns-vol-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-mid);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .ns-range {
-    flex: 1;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 2px;
-    background: var(--text-dim);
-    border-radius: 2px;
-    outline: none;
-    cursor: pointer;
-    position: relative;
-  }
-  .ns-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--orb-core);
-    cursor: pointer;
-    box-shadow: 0 0 6px rgba(10,240,200,0.5);
-    transition: box-shadow 0.2s;
-  }
-  .ns-range::-webkit-slider-thumb:hover {
-    box-shadow: 0 0 12px rgba(10,240,200,0.8);
-  }
-  .ns-range::-moz-range-thumb {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--orb-core);
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 0 6px rgba(10,240,200,0.5);
-  }
-  .ns-range::-webkit-slider-runnable-track {
-    background: linear-gradient(90deg, var(--orb-mid) var(--track-fill, 50%), var(--text-dim) var(--track-fill, 50%));
-    height: 2px;
-    border-radius: 2px;
-  }
-  .ns-vol-pct {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    color: var(--text-mid);
-    width: 32px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  /* Section label for NATURAL SOUNDS group */
-  .section-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.26em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    padding-bottom: 2px;
-  }
-
-  /* Hide/Show controls button */
-  .toggle-ui-btn {
-    position: fixed;
-    bottom: 22px;
-    right: 28px;
-    z-index: 100;
+  /* ── Icon button ── */
+  .icon-btn {
     background: transparent;
     border: 1px solid var(--text-dim);
+    border-radius: 3px;
     color: var(--text-mid);
     font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.20em;
-    text-transform: uppercase;
-    padding: 6px 12px;
+    font-size: clamp(7px, 1.2vw, 9px);
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
     cursor: pointer;
-    border-radius: 2px;
-    transition: border-color 0.3s, color 0.3s, opacity 0.3s;
-    opacity: 0.5;
+    flex-shrink: 0;
+    transition: border-color 0.2s, color 0.2s;
+    white-space: nowrap;
   }
-  .toggle-ui-btn:hover {
-    border-color: var(--orb-core);
-    color: var(--orb-core);
-    opacity: 1;
-  }
+  .icon-btn:hover { border-color: var(--orb-core); color: var(--text-hi); }
+  .icon-btn.active { border-color: var(--orb-core); color: var(--orb-core); }
 
-  /* Panel hide transition */
-  .panel {
-    transition: opacity 0.5s ease, transform 0.5s ease, max-height 0.5s ease;
+  /* ── Sound config panel ── */
+  .ns-config {
+    display: none;
+    flex-direction: column;
+    gap: 7px;
+    padding: 10px 0 4px;
+    border-top: 1px solid rgba(42,58,85,0.6);
+    border-bottom: 1px solid rgba(42,58,85,0.6);
+  }
+  .ns-config.open { display: flex; }
+
+  .ns-config-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ns-config-idx {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    width: 16px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .ns-config-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--text-dim);
+    color: var(--text-mid);
+    outline: none;
+    width: clamp(60px, 14vw, 90px);
+    flex-shrink: 0;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .ns-config-url {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--text-dim);
+    color: var(--text-mid);
+    outline: none;
+    flex: 1;
+    min-width: 0;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .ns-config-name:focus,
+  .ns-config-url:focus { border-bottom-color: var(--orb-core); color: var(--text-hi); }
+
+  .ns-config-save {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-align: center;
+    padding: 4px 0;
+    color: var(--text-dim);
+    cursor: pointer;
+    border: 1px solid var(--text-dim);
+    border-radius: 2px;
+    background: transparent;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .ns-config-save:hover { border-color: var(--orb-core); color: var(--orb-core); }
+
+  /* ── Config action bar (add / import / export) ── */
+  .ns-config-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-top: 2px;
+  }
+  .ns-config-actions .icon-btn { flex: 1; text-align: center; font-size: 8px; padding: 3px 4px; }
+
+  /* ── Delete row button ── */
+  .ns-del-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0 3px;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .ns-del-btn:hover { color: #ff4466; }
+
+  /* ── Playback mode pill buttons ── */
+  .play-mode-wrap {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+  }
+  .play-mode-btn {
+    flex: 1;
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(6px, 1.1vw, 8px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--text-dim);
+    border-radius: 2px;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 3px 4px;
+    transition: all 0.2s;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .play-mode-btn:hover { border-color: var(--text-mid); color: var(--text-mid); }
+  .play-mode-btn.active { border-color: var(--orb-core); color: var(--orb-core); background: rgba(10,240,200,0.06); }
+
+  /* ── Now-playing indicator ── */
+  .ns-now-playing {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+    transition: color 0.3s;
   }
-  .panel.hidden {
-    opacity: 0;
-    pointer-events: none;
-    max-height: 0 !important;
-    transform: translateY(12px);
-    padding-bottom: 0;
-  }
-  .corner {
-    transition: opacity 0.5s ease;
-  }
-  .corners-hidden .corner {
-    opacity: 0 !important;
+  .ns-now-playing.playing { color: var(--orb-core); }
+
+  @media (max-width: 480px) {
+    .panel { gap: 10px; }
+    .switch { width: 52px; height: 22px; }
+    .switch .slider:before { height: 14px; width: 14px; }
+    input:checked + .slider:before { transform: translateX(28px); }
+    .icon-btn { font-size: 8px; padding: 2px 5px; }
+    .corner { width: 16px; height: 16px; }
   }
 </style>
 </head>
 <body>
 <div class="stage">
-  <div class="corner tl"></div>
-  <div class="corner tr"></div>
-  <canvas id="c" width="800" height="800"></canvas>
+
+  <div class="canvas-wrap">
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+    <canvas id="c" width="800" height="800"></canvas>
+  </div>
 
   <div class="panel">
-    <!-- Progress bars -->
+
+    <!-- ══ ORB CONTROLS ══ -->
+    <div class="section-label">Orb Controls</div>
+
     <div class="bar-row">
-      <span class="bar-label">Neural Load</span>
-      <div class="bar-track"><div class="bar-fill" id="b1"></div></div>
-      <span class="bar-pct" id="p1">0%</span>
-    </div>
-    <div class="bar-row">
-      <span class="bar-label">Vector Idx</span>
-      <div class="bar-track"><div class="bar-fill" id="b2"></div></div>
-      <span class="bar-pct" id="p2">0%</span>
-    </div>
-    <div class="bar-row">
-      <span class="bar-label">Coherence</span>
-      <div class="bar-track"><div class="bar-fill" id="b3"></div></div>
-      <span class="bar-pct" id="p3">0%</span>
+      <span class="bar-label">COLOR</span>
+      <div id="color-strip" class="color-strip"></div>
+      <input type="range" class="ctl-range" id="orb-hue" min="0" max="100" value="0">
+      <span class="bar-pct" id="orb-hue-pct">0%</span>
     </div>
 
-    <!-- Binaural Zen Control -->
+    <div class="bar-row">
+      <span class="bar-label">POINTS</span>
+      <input type="range" class="ctl-range" id="orb-pts" min="80" max="600" value="320">
+      <span class="bar-pct" id="orb-pts-val">320</span>
+    </div>
+
+    <div class="bar-row">
+      <span class="bar-label">RADIUS</span>
+      <input type="range" class="ctl-range" id="orb-rad" min="80" max="320" value="200">
+      <span class="bar-pct" id="orb-rad-val">200</span>
+    </div>
+
+    <div class="bar-row">
+      <span class="bar-label">DISTORT</span>
+      <input type="range" class="ctl-range" id="orb-dist" min="0" max="100" value="0">
+      <span class="bar-pct" id="orb-dist-pct">0%</span>
+    </div>
+
+    <div class="bar-row">
+      <span class="bar-label">SPEED</span>
+      <input type="range" class="ctl-range" id="orb-speed" min="0" max="100" value="50">
+      <span class="bar-pct" id="orb-speed-pct">50%</span>
+    </div>
+
+    <!-- ══ AUDIO ══ -->
+    <div class="section-divider"></div>
+    <div class="section-label">Audio</div>
+
     <div class="bar-row">
       <span class="bar-label">BINAURAL ZEN</span>
       <label class="switch">
@@ -393,10 +450,6 @@
       <span class="bar-pct" id="zen-status">OFF</span>
     </div>
 
-    <!-- Divider -->
-    <div class="section-divider"></div>
-
-    <!-- NATURAL SOUNDS: Toggle + Sound Selector -->
     <div class="bar-row">
       <span class="bar-label">NAT. SOUNDS</span>
       <label class="switch">
@@ -405,440 +458,648 @@
       </label>
       <select class="ns-select" id="ns-select">
         <option value="">— SELECT —</option>
-        <option value="https://cdn.pixabay.com/audio/2022/03/10/audio_1e94a5e3d4.mp3">Lluvia Suave</option>
-        <option value="https://cdn.pixabay.com/audio/2021/09/06/audio_166e9f0c6d.mp3">Río Tranquilo</option>
-        <option value="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3">Cascada</option>
-        <option value="https://cdn.pixabay.com/audio/2022/03/15/audio_4df8845c22.mp3">Sonidos del Bosque</option>
-        <option value="https://cdn.pixabay.com/audio/2022/10/30/audio_bbc04f3e56.mp3">Sonidos Nocturnos</option>
-        <option value="https://cdn.pixabay.com/audio/2022/01/18/audio_d0c6ff1bab.mp3">Chimenea Crepitante</option>
-        <option value="https://cdn.pixabay.com/audio/2022/03/24/audio_5e84a7b0de.mp3">Olas del Mar</option>
-        <option value="https://cdn.pixabay.com/audio/2021/08/09/audio_dc39bde808.mp3">Tormenta Suave</option>
-        <option value="https://cdn.pixabay.com/audio/2022/06/07/audio_b9bab7a5fc.mp3">Agua en Movimiento</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/02/Calm-ambient-music-ocean-waves-for-sleep-and-relaxation.mp3">Ocean Waves</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/03/Running-water-sound-for-sleep-relaxing-stream-ambience.mp3">Río Tranquilo</option>
+        <option value="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3">Chillout</option>
+        <option value="https://www.orangefreesounds.com/wp-content/uploads/2017/09/Forest-ambience.mp3">Bosque</option>
+        <option value="https://www.orangefreesounds.com/wp-content/uploads/2025/11/Wind-blowing-through-trees-sound-effect.mp3">Viento</option>
+        <option value="https://www.orangefreesounds.com/wp-content/uploads/2017/06/Crackling-fireplace.mp3">Chimenea</option>
+        <option value="https://bigsoundbank.com/UPLOAD/mp3/0267.mp3">Olas del Mar</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/12/Distant-storm-thunder-sound-effect.mp3">Tormenta</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/04/Rain-falling-under-an-umbrella-in-the-city-sound-effect.mp3">Lluvia</option>
       </select>
+      <button class="icon-btn" id="ns-cfg-btn">CFG</button>
     </div>
 
-    <!-- NATURAL SOUNDS: Volume -->
+    <!-- Playback mode + now-playing -->
+    <div class="bar-row">
+      <span class="bar-label">PLAY MODE</span>
+      <div class="play-mode-wrap">
+        <button class="play-mode-btn active" id="mode-repeat">↺ Repeat</button>
+        <button class="play-mode-btn" id="mode-seq">▶▶ Sequence</button>
+      </div>
+      <span class="ns-now-playing" id="ns-now-playing">—</span>
+    </div>
+
+    <!-- Sound URL editor (hidden by default) -->
+    <div class="ns-config" id="ns-config">
+      <!-- rows injected by JS -->
+      <div class="ns-config-actions">
+        <button class="icon-btn" id="ns-add-btn">+ ADD</button>
+        <button class="icon-btn" id="ns-export-btn">↓ EXPORT JSON</button>
+        <button class="icon-btn" id="ns-import-btn">↑ IMPORT JSON</button>
+        <input type="file" id="ns-import-file" accept=".json" style="display:none">
+      </div>
+      <button class="ns-config-save" id="ns-cfg-save">Guardar cambios</button>
+    </div>
+
     <div class="bar-row">
       <span class="bar-label">NAT. VOLUME</span>
-      <div class="ns-slider-wrap">
-        <input type="range" class="ns-range" id="ns-volume" min="0" max="100" value="60">
-      </div>
-      <span class="ns-vol-pct" id="ns-vol-pct">60%</span>
+      <input type="range" class="ctl-range" id="ns-volume" min="0" max="100" value="60">
+      <span class="bar-pct" id="ns-vol-pct">60%</span>
     </div>
 
-    <!-- Task text -->
-    <div class="task-wrap">
-      <span class="task-text" id="task"></span>
-      <span class="cursor"></span>
-    </div>
   </div>
-
-  <div class="corner bl"></div>
-  <div class="corner br"></div>
 </div>
 
-<button class="toggle-ui-btn" id="toggle-ui-btn">HIDE UI</button>
-
 <script>
-// ====================== CANVAS 3D ORB ======================
+// ══════════════════════════════════════════════════════════════
+//  ORB STATE
+// ══════════════════════════════════════════════════════════════
+const ORB = {
+  N:          320,
+  R:          200,
+  hueShift:   0,   // 0–1
+  distortion: 0,   // 0–1
+  speedMul:   1,   // rotation + pulse multiplier (0–3)
+};
+
+const BASE_VEL_X = 0.0004;
+const BASE_VEL_Y = 0.0009;
+const BASE_PULSE_SPEEDS = [0.0006, 0.00075, 0.0009, 0.00105];
+
+// ══════════════════════════════════════════════════════════════
+//  CANVAS
+// ══════════════════════════════════════════════════════════════
 const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+const ctx    = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 const CX = W / 2, CY = H / 2;
-const R = 200;
-const N = 320;
 
-function fibSphere(n) {
+// ══════════════════════════════════════════════════════════════
+//  COLOUR SYSTEM — parse CSS vars once, hue-rotate on demand
+// ══════════════════════════════════════════════════════════════
+function hexToRgb(hex) {
+  const h = hex.trim().replace('#','');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+
+// 3×3 hue-rotation matrix applied to an [r,g,b] array
+function hueRotate(rgb, deg) {
+  const rad = deg * Math.PI / 180;
+  const c = Math.cos(rad), s = Math.sin(rad);
+  const k = 1/3, sq = Math.sqrt(1/3);
+  const M = [
+    c+(1-c)*k,    (1-c)*k-sq*s, (1-c)*k+sq*s,
+    (1-c)*k+sq*s, c+(1-c)*k,    (1-c)*k-sq*s,
+    (1-c)*k-sq*s, (1-c)*k+sq*s, c+(1-c)*k
+  ];
+  const clamp = v => Math.min(255, Math.max(0, Math.round(v)));
+  return [
+    clamp(M[0]*rgb[0] + M[1]*rgb[1] + M[2]*rgb[2]),
+    clamp(M[3]*rgb[0] + M[4]*rgb[1] + M[5]*rgb[2]),
+    clamp(M[6]*rgb[0] + M[7]*rgb[1] + M[8]*rgb[2])
+  ];
+}
+
+const RS = getComputedStyle(document.documentElement);
+const C_CORE = hexToRgb(RS.getPropertyValue('--orb-core'));
+const C_MID  = hexToRgb(RS.getPropertyValue('--orb-mid'));
+const C_EDGE = hexToRgb(RS.getPropertyValue('--orb-edge'));
+
+let curCore = [...C_CORE];
+let curMid  = [...C_MID];
+let curEdge = [...C_EDGE];
+let glowDirty = true;
+let glowCache = null;
+
+function applyHue(t) {
+  const deg = t * 360;
+  curCore = hueRotate(C_CORE, deg);
+  curMid  = hueRotate(C_MID,  deg);
+  curEdge = hueRotate(C_EDGE, deg);
+  glowDirty = true;
+  // Update color strip preview
+  document.getElementById('color-strip').style.background =
+    `linear-gradient(135deg, rgb(${curCore}), rgb(${curMid}), rgb(${curEdge}))`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  GEOMETRY
+// ══════════════════════════════════════════════════════════════
+function fibSphere(n, distort) {
   const pts = [];
-  const golden = Math.PI * (3 - Math.sqrt(5));
+  const phi = Math.PI * (3 - Math.sqrt(5)); // golden angle
   for (let i = 0; i < n; i++) {
-    const y = 1 - (i / (n - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const theta = golden * i;
+    let y = 1 - (i / (n - 1)) * 2;
+    let r = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = phi * i;
+    if (distort > 0) {
+      // Layered sine noise for organic distortion
+      const noise = Math.sin(theta * 3.1 + y * 7.3) * 0.5
+                  + Math.sin(theta * 1.7 - y * 4.1) * 0.5;
+      const d = distort * 0.35 * noise;
+      y += d * (1 - Math.abs(y));
+      r  = Math.sqrt(Math.max(0, 1 - y * y))
+         * (1 + distort * 0.2 * Math.sin(theta * 2.4));
+    }
     pts.push({ x: Math.cos(theta) * r, y, z: Math.sin(theta) * r });
   }
   return pts;
 }
-const basePts = fibSphere(N);
 
-const pulses = Array.from({ length: 4 }, (_, i) => ({
-  phase: i / 4,
-  speed: 0.0006 + i * 0.00015,
-  axis: { x: Math.random() - 0.5, y: Math.random() - 0.5, z: Math.random() - 0.5 }
-}));
-pulses.forEach(p => {
-  const len = Math.hypot(p.axis.x, p.axis.y, p.axis.z);
-  p.axis.x /= len; p.axis.y /= len; p.axis.z /= len;
+let basePts = fibSphere(ORB.N, 0);
+let geomDirty = false;
+
+const pulses = Array.from({ length: 4 }, (_, i) => {
+  const v = { x: Math.random()-0.5, y: Math.random()-0.5, z: Math.random()-0.5 };
+  const l = Math.hypot(v.x, v.y, v.z);
+  return { phase: i/4, baseSpeed: BASE_PULSE_SPEEDS[i],
+           axis: { x: v.x/l, y: v.y/l, z: v.z/l } };
 });
 
 let rotX = 0, rotY = 0;
-const velX = 0.0004, velY = 0.0009;
 
-function rotateX(p, a) { const c = Math.cos(a), s = Math.sin(a); return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c }; }
-function rotateY(p, a) { const c = Math.cos(a), s = Math.sin(a); return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c }; }
-function project(p) {
-  const fov = 900;
-  const scale = fov / (fov + p.z * R);
-  return { sx: CX + p.x * R * scale, sy: CY + p.y * R * scale, depth: (p.z + 1) / 2 };
-}
-
+// ══════════════════════════════════════════════════════════════
+//  MATH HELPERS
+// ══════════════════════════════════════════════════════════════
 function lerp(a, b, t) { return a + (b - a) * t; }
-function dotColour(depth, pulse01) {
-  const r = Math.round(lerp(0, 60, depth) + pulse01 * 160);
-  const g = Math.round(lerp(60, 240, depth) + pulse01 * 60);
-  const b = Math.round(lerp(200, 180, depth));
-  return `rgb(${Math.min(r,255)},${Math.min(g,255)},${Math.min(b,255)})`;
+
+function rotX3(p, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x: p.x, y: p.y*c - p.z*s, z: p.y*s + p.z*c };
 }
+function rotY3(p, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x: p.x*c + p.z*s, y: p.y, z: -p.x*s + p.z*c };
+}
+function project(p) {
+  const fov = 900, R = ORB.R;
+  const scale = fov / (fov + p.z * R);
+  return { sx: CX + p.x * R * scale, sy: CY + p.y * R * scale };
+}
+
+function dotColour(depth, pulse01) {
+  const r = Math.min(255, Math.round(lerp(curEdge[0], curCore[0], depth) + pulse01 * 160));
+  const g = Math.min(255, Math.round(lerp(curEdge[1], curCore[1], depth) + pulse01 * 60));
+  const b = Math.min(255, Math.round(lerp(curEdge[2], curCore[2], depth)));
+  return `rgb(${r},${g},${b})`;
+}
+
 function pulseDot(q, axis, phase) {
-  const d = q.x * axis.x + q.y * axis.y + q.z * axis.z;
-  const ang = Math.acos(Math.max(-1, Math.min(1, d)));
+  const d   = q.x*axis.x + q.y*axis.y + q.z*axis.z;
+  const ang  = Math.acos(Math.max(-1, Math.min(1, d)));
   const norm = ang / Math.PI;
   const dist = Math.abs(norm - phase);
   return Math.max(0, 1 - Math.min(dist, 1 - dist) / 0.08);
 }
 
-let glowCache = null;
 function getGlow() {
-  if (glowCache) return glowCache;
+  if (!glowDirty && glowCache) return glowCache;
+  const R = ORB.R;
   const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, R * 1.35);
-  g.addColorStop(0, 'rgba(10,240,200,0.12)');
-  g.addColorStop(0.45, 'rgba(0,112,255,0.10)');
-  g.addColorStop(0.85, 'rgba(139,0,255,0.05)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  glowCache = g;
+  g.addColorStop(0,    `rgba(${curCore},0.12)`);
+  g.addColorStop(0.45, `rgba(${curMid},0.10)`);
+  g.addColorStop(0.85, `rgba(${curEdge},0.05)`);
+  g.addColorStop(1,    'rgba(0,0,0,0)');
+  glowCache  = g;
+  glowDirty  = false;
   return g;
 }
 
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = getGlow();
-  ctx.fillRect(0, 0, W, H);
+// ══════════════════════════════════════════════════════════════
+//  UPDATE + DRAW  (separated so update can run headlessly)
+// ══════════════════════════════════════════════════════════════
+let drawn = [];
 
-  ctx.beginPath(); ctx.arc(CX, CY, R + 18, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0,112,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.beginPath(); ctx.arc(CX, CY, R + 26, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0,240,200,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
+function update() {
+  if (geomDirty) {
+    basePts   = fibSphere(ORB.N, ORB.distortion);
+    geomDirty = false;
+    glowDirty = true;
+  }
 
-  pulses.forEach(p => p.phase = (p.phase + p.speed) % 1);
+  const spd = ORB.speedMul;
+  pulses.forEach(p => { p.phase = (p.phase + p.baseSpeed * spd) % 1; });
 
-  const drawn = basePts.map(pt => {
-    let q = rotateX(pt, rotX);
-    q = rotateY(q, rotY);
+  drawn = basePts.map(pt => {
+    let q     = rotX3(pt, rotX);
+    q         = rotY3(q,  rotY);
     const proj = project(q);
-    const pval = pulses.reduce((acc, p) => acc + pulseDot(q, p.axis, p.phase), 0);
-    return { ...proj, depth: (q.z + 1)/2, pulse: Math.min(pval, 1) };
+    const depth = (q.z + 1) / 2;
+    const pval  = pulses.reduce((acc, p) => acc + pulseDot(q, p.axis, p.phase), 0);
+    return { ...proj, depth, pulse: Math.min(pval, 1) };
   });
 
   drawn.sort((a, b) => a.depth - b.depth);
 
+  rotX += BASE_VEL_X * spd;
+  rotY += BASE_VEL_Y * spd;
+}
+
+function draw() {
+  const R = ORB.R;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = getGlow();
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.beginPath(); ctx.arc(CX, CY, R+18, 0, Math.PI*2);
+  ctx.strokeStyle = `rgba(${curMid},0.18)`; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX, CY, R+26, 0, Math.PI*2);
+  ctx.strokeStyle = `rgba(${curCore},0.06)`; ctx.lineWidth = 0.5; ctx.stroke();
+
   drawn.forEach(d => {
-    const r = lerp(0.8, 2.8, d.depth) + d.pulse * 2.5;
-    const alpha = lerp(0.12, 0.9, d.depth) + d.pulse * 0.3;
-    const col = dotColour(d.depth, d.pulse);
+    const r     = lerp(0.8, 2.8, d.depth) + d.pulse * 2.5;
+    const alpha = Math.min(lerp(0.12, 0.9, d.depth) + d.pulse * 0.3, 1);
 
     if (d.pulse > 0.05) {
-      const gp = ctx.createRadialGradient(d.sx, d.sy, 0, d.sx, d.sy, r * 6);
-      gp.addColorStop(0, `rgba(200,255,240,${d.pulse * 0.5})`);
-      gp.addColorStop(0.4, `rgba(0,240,200,${d.pulse * 0.25})`);
-      gp.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(d.sx, d.sy, r * 6, 0, Math.PI * 2); ctx.fillStyle = gp; ctx.fill();
+      const gp = ctx.createRadialGradient(d.sx, d.sy, 0, d.sx, d.sy, r*6);
+      gp.addColorStop(0,   `rgba(${curCore},${(d.pulse * 0.5).toFixed(3)})`);
+      gp.addColorStop(0.4, `rgba(${curMid},${(d.pulse * 0.25).toFixed(3)})`);
+      gp.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(d.sx, d.sy, r*6, 0, Math.PI*2);
+      ctx.fillStyle = gp; ctx.fill();
     }
 
-    ctx.beginPath(); ctx.arc(d.sx, d.sy, r, 0, Math.PI * 2);
-    ctx.globalAlpha = Math.min(alpha, 1);
-    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(d.sx, d.sy, r, 0, Math.PI*2);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle   = dotColour(d.depth, d.pulse);
     ctx.fill();
     ctx.globalAlpha = 1;
   });
 
-  ctx.strokeStyle = 'rgba(0,240,200,0.08)'; ctx.lineWidth = 0.5;
-  ctx.beginPath(); ctx.moveTo(CX, CY - R - 40); ctx.lineTo(CX, CY + R + 40); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(CX - R - 40, CY); ctx.lineTo(CX + R + 40, CY); ctx.stroke();
-
-  rotX += velX;
-  rotY += velY;
+  ctx.strokeStyle = `rgba(${curCore},0.08)`; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(CX, CY-R-40); ctx.lineTo(CX, CY+R+40); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(CX-R-40, CY); ctx.lineTo(CX+R+40, CY); ctx.stroke();
 }
 
-// ====================== PROGRESS BARS ======================
-const bars = [
-  { fill: document.getElementById('b1'), pct: document.getElementById('p1'), v: 0, target: 88 },
-  { fill: document.getElementById('b2'), pct: document.getElementById('p2'), v: 0, target: 74 },
-  { fill: document.getElementById('b3'), pct: document.getElementById('p3'), v: 0, target: 95 }
-];
-
-function tickBars() {
-  bars.forEach(b => {
-    b.v += (b.target - b.v) * 0.012;
-    if (Math.abs(b.v - b.target) < 0.6) b.target = 55 + Math.random() * 44;
-    b.fill.style.width = b.v + '%';
-    b.pct.textContent = Math.round(b.v) + '%';
-  });
+// ══════════════════════════════════════════════════════════════
+//  SLIDER HELPERS
+// ══════════════════════════════════════════════════════════════
+function setRangeFill(el) {
+  const pct = ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1) + '%';
+  el.style.setProperty('--rf', pct);
 }
 
-// ====================== TASKS ======================
-const TASKS = [
-  'Analyzing context…', 'Searching vector space…', 'Optimizing response…',
-  'Expanding token graph…', 'Cross-referencing embeddings…', 'Calibrating attention heads…',
-  'Pruning beam candidates…', 'Resolving semantic drift…', 'Sampling latent manifold…',
-  'Aggregating confidence scores…', 'Reranking retrieved passages…', 'Synthesizing final output…'
-];
-let taskIdx = 0;
-const taskEl = document.getElementById('task');
-function nextTask() {
-  taskEl.classList.remove('visible');
-  setTimeout(() => {
-    taskIdx = (taskIdx + 1) % TASKS.length;
-    taskEl.textContent = TASKS[taskIdx];
-    taskEl.classList.add('visible');
-  }, 400);
-}
-taskEl.textContent = TASKS[0];
-setTimeout(() => taskEl.classList.add('visible'), 300);
-setInterval(nextTask, 2400);
+// ══════════════════════════════════════════════════════════════
+//  ORB SLIDERS
+// ══════════════════════════════════════════════════════════════
+const sliderHue   = document.getElementById('orb-hue');
+const sliderPts   = document.getElementById('orb-pts');
+const sliderRad   = document.getElementById('orb-rad');
+const sliderDist  = document.getElementById('orb-dist');
+const sliderSpeed = document.getElementById('orb-speed');
 
-// ====================== BINAURAL ZEN AUDIO ======================
-let audioCtx = null;
-let leftOsc = null;
-let rightOsc = null;
-let binauralGain = null;
+[sliderHue, sliderPts, sliderRad, sliderDist, sliderSpeed].forEach(setRangeFill);
 
-function initBinaural() {
-  if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
+sliderHue.addEventListener('input', () => {
+  ORB.hueShift = sliderHue.value / 100;
+  applyHue(ORB.hueShift);
+  setRangeFill(sliderHue);
+  document.getElementById('orb-hue-pct').textContent = sliderHue.value + '%';
+});
+
+sliderPts.addEventListener('input', () => {
+  ORB.N = +sliderPts.value;
+  geomDirty = true;
+  setRangeFill(sliderPts);
+  document.getElementById('orb-pts-val').textContent = ORB.N;
+});
+
+sliderRad.addEventListener('input', () => {
+  ORB.R = +sliderRad.value;
+  glowDirty = true;
+  setRangeFill(sliderRad);
+  document.getElementById('orb-rad-val').textContent = ORB.R;
+});
+
+sliderDist.addEventListener('input', () => {
+  ORB.distortion = sliderDist.value / 100;
+  geomDirty = true;
+  setRangeFill(sliderDist);
+  document.getElementById('orb-dist-pct').textContent = sliderDist.value + '%';
+});
+
+sliderSpeed.addEventListener('input', () => {
+  // 0 → 0×, 50 → 1×, 100 → 3×
+  ORB.speedMul = (sliderSpeed.value / 100) * 3;
+  setRangeFill(sliderSpeed);
+  document.getElementById('orb-speed-pct').textContent = sliderSpeed.value + '%';
+});
+
+// Init colour strip
+applyHue(0);
+
+// ══════════════════════════════════════════════════════════════
+//  BINAURAL ZEN
+// ══════════════════════════════════════════════════════════════
+let audioCtx = null, leftOsc = null, rightOsc = null, binauralGain = null;
 
 function enableBinaural() {
-  initBinaural();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (leftOsc) return;
-
-  leftOsc = audioCtx.createOscillator();
+  leftOsc  = audioCtx.createOscillator();
   rightOsc = audioCtx.createOscillator();
   binauralGain = audioCtx.createGain();
-
   leftOsc.type = rightOsc.type = 'sine';
-  leftOsc.frequency.value = 200;
-  rightOsc.frequency.value = 206;   // 6 Hz theta - muy relajante y ZEN
-
-  const leftPan = audioCtx.createStereoPanner();
-  const rightPan = audioCtx.createStereoPanner();
-  leftPan.pan.value = -0.85;
-  rightPan.pan.value = 0.85;
-
-  leftOsc.connect(leftPan).connect(binauralGain);
-  rightOsc.connect(rightPan).connect(binauralGain);
+  leftOsc.frequency.value  = 200;
+  rightOsc.frequency.value = 206; // 6 Hz theta beat
+  const lp = audioCtx.createStereoPanner(); lp.pan.value = -0.85;
+  const rp = audioCtx.createStereoPanner(); rp.pan.value =  0.85;
+  leftOsc.connect(lp).connect(binauralGain);
+  rightOsc.connect(rp).connect(binauralGain);
   binauralGain.connect(audioCtx.destination);
-
-  leftOsc.start();
-  rightOsc.start();
+  leftOsc.start(); rightOsc.start();
   binauralGain.gain.value = 0;
 }
 
-// ====================== CONTROLES BINAURAL ======================
-const zenToggle = document.getElementById('zen-toggle');
-const zenStatus = document.getElementById('zen-status');
-
-zenToggle.addEventListener('change', () => {
-  if (zenToggle.checked) {
+document.getElementById('zen-toggle').addEventListener('change', e => {
+  if (e.target.checked) {
     enableBinaural();
-    binauralGain.gain.setTargetAtTime(0.08, audioCtx.currentTime, 1.5); // volumen suave
-    zenStatus.textContent = "ON";
+    binauralGain.gain.setTargetAtTime(0.08, audioCtx.currentTime, 1.5);
   } else if (binauralGain) {
     binauralGain.gain.setTargetAtTime(0, audioCtx.currentTime, 1.5);
-    zenStatus.textContent = "OFF";
   }
+  document.getElementById('zen-status').textContent = e.target.checked ? 'ON' : 'OFF';
 });
 
-// ====================== NATURAL SOUNDS AUDIO ======================
-let nsAudioCtx = null;
-let nsAudioEl = null;
-let nsSource = null;
-let nsGainNode = null;
-let nsCurrentUrl = '';
-let nsActive = false;
-let nsFadeTimer = null;
+// ══════════════════════════════════════════════════════════════
+//  NATURAL SOUNDS  (native Audio — no CORS restriction)
+// ══════════════════════════════════════════════════════════════
+let nsAudioEl = null, nsActive = false, nsFadeFrame = null;
+const FADE_MS = 900;
 
-const FADE_TIME = 0.9; // segundos de fade
+// Playback mode: 'repeat' (loop current) | 'seq' (advance playlist)
+let playMode = 'repeat';
 
-function initNsCtx() {
-  if (nsAudioCtx) return;
-  nsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  nsGainNode = nsAudioCtx.createGain();
-  nsGainNode.gain.value = 0;
-  nsGainNode.connect(nsAudioCtx.destination);
-}
+const nsVolSlider   = document.getElementById('ns-volume');
+const nsVolPct      = document.getElementById('ns-vol-pct');
+const nsNowPlaying  = document.getElementById('ns-now-playing');
 
-function getNsVolume() {
-  return parseInt(document.getElementById('ns-volume').value) / 100;
-}
+function getNsVol() { return nsVolSlider.value / 100; }
 
-function fadeIn() {
-  if (!nsGainNode) return;
-  const target = getNsVolume();
-  nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
-  nsGainNode.gain.setValueAtTime(nsGainNode.gain.value, nsAudioCtx.currentTime);
-  nsGainNode.gain.linearRampToValueAtTime(target, nsAudioCtx.currentTime + FADE_TIME);
-}
-
-function fadeOut(callback) {
-  if (!nsGainNode) { if (callback) callback(); return; }
-  nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
-  nsGainNode.gain.setValueAtTime(nsGainNode.gain.value, nsAudioCtx.currentTime);
-  nsGainNode.gain.linearRampToValueAtTime(0, nsAudioCtx.currentTime + FADE_TIME);
-  if (callback) {
-    clearTimeout(nsFadeTimer);
-    nsFadeTimer = setTimeout(callback, FADE_TIME * 1000 + 50);
+function setNowPlaying(name) {
+  if (name) {
+    nsNowPlaying.textContent = name;
+    nsNowPlaying.classList.add('playing');
+  } else {
+    nsNowPlaying.textContent = '—';
+    nsNowPlaying.classList.remove('playing');
   }
 }
 
-function stopNsAudio(callback) {
-  if (!nsAudioEl) { if (callback) callback(); return; }
-  fadeOut(() => {
-    if (nsAudioEl) {
-      nsAudioEl.pause();
-      nsAudioEl.src = '';
-    }
-    if (nsSource) {
-      try { nsSource.disconnect(); } catch(e) {}
-      nsSource = null;
-    }
-    if (callback) callback();
+function animateFade(from, to, ms, done) {
+  if (nsFadeFrame) cancelAnimationFrame(nsFadeFrame);
+  const t0 = performance.now();
+  const step = now => {
+    const t = Math.min((now - t0) / ms, 1);
+    if (nsAudioEl) nsAudioEl.volume = Math.max(0, Math.min(1, from + (to - from) * t));
+    t < 1 ? (nsFadeFrame = requestAnimationFrame(step)) : (nsFadeFrame = null, done?.());
+  };
+  nsFadeFrame = requestAnimationFrame(step);
+}
+
+function stopNs(cb) {
+  if (!nsAudioEl) { cb?.(); return; }
+  animateFade(nsAudioEl.volume, 0, FADE_MS, () => {
+    nsAudioEl?.pause();
+    if (nsAudioEl) { nsAudioEl.src = ''; nsAudioEl = null; }
+    cb?.();
   });
 }
 
-function playNsSound(url) {
+function playNs(url, label) {
   if (!url) return;
-  initNsCtx();
-
-  if (nsAudioCtx.state === 'suspended') {
-    nsAudioCtx.resume();
-  }
-
-  const startSound = () => {
-    // Crear nuevo elemento de audio
+  const start = () => {
     const el = new Audio();
-    el.crossOrigin = 'anonymous';
-    el.loop = true;
+    el.loop = (playMode === 'repeat');
+    el.volume = 0;
     el.src = url;
-
-    const src = nsAudioCtx.createMediaElementSource(el);
-    src.connect(nsGainNode);
-
     nsAudioEl = el;
-    nsSource = src;
-    nsCurrentUrl = url;
+    setNowPlaying(label || url.split('/').pop());
 
-    el.play().then(() => {
-      fadeIn();
-    }).catch(err => {
-      console.warn('Natural sound playback error:', err);
-    });
+    // In sequence mode, advance to next track when this one ends
+    if (playMode === 'seq') {
+      el.addEventListener('ended', advancePlaylist, { once: true });
+    }
+
+    el.play()
+      .then(() => animateFade(0, getNsVol(), FADE_MS, null))
+      .catch(e => console.warn('NS playback error:', e));
   };
 
   if (nsAudioEl && !nsAudioEl.paused) {
-    // Hay sonido reproduciéndose: fade out → swap → fade in
-    fadeOut(() => {
-      if (nsSource) { try { nsSource.disconnect(); } catch(e) {} nsSource = null; }
-      if (nsAudioEl) { nsAudioEl.pause(); nsAudioEl.src = ''; nsAudioEl = null; }
-      startSound();
+    animateFade(nsAudioEl.volume, 0, FADE_MS, () => {
+      nsAudioEl?.pause();
+      if (nsAudioEl) { nsAudioEl.src = ''; nsAudioEl = null; }
+      start();
     });
   } else {
-    // No hay sonido o estaba pausado
-    if (nsAudioEl) {
-      try { if (nsSource) nsSource.disconnect(); } catch(e) {}
-      nsAudioEl.pause();
-      nsAudioEl.src = '';
-      nsAudioEl = null;
-      nsSource = null;
-    }
-    startSound();
+    if (nsAudioEl) { nsAudioEl.pause(); nsAudioEl.src = ''; nsAudioEl = null; }
+    start();
   }
 }
 
-// ====================== CONTROLES NATURAL SOUNDS ======================
+// Move to the next non-empty option in the select, wrapping around
+function advancePlaylist() {
+  const opts = Array.from(nsSelect.options).filter(o => o.value);
+  if (!opts.length) return;
+  const cur = opts.findIndex(o => o.value === (nsAudioEl?.src || nsSelect.value));
+  const next = opts[(cur + 1) % opts.length];
+  nsSelect.value = next.value;
+  playNs(next.value, next.textContent.trim());
+}
+
 const nsToggle = document.getElementById('ns-toggle');
 const nsSelect = document.getElementById('ns-select');
-const nsVolRange = document.getElementById('ns-volume');
-const nsVolPct = document.getElementById('ns-vol-pct');
-
-// Actualizar porcentaje y track del slider
-function updateNsSliderUI() {
-  const val = nsVolRange.value;
-  nsVolPct.textContent = val + '%';
-  nsVolRange.style.setProperty('--track-fill', val + '%');
-}
-updateNsSliderUI();
 
 nsToggle.addEventListener('change', () => {
-  initNsCtx();
-  if (nsAudioCtx.state === 'suspended') nsAudioCtx.resume();
-
   if (nsToggle.checked) {
     nsActive = true;
-    // Si no hay sonido seleccionado, auto-seleccionar el primero de la lista
-    if (!nsSelect.value) {
-      const firstOption = nsSelect.querySelector('option[value]:not([value=""])');
-      if (firstOption) nsSelect.value = firstOption.value;
-    }
-    const url = nsSelect.value;
-    if (url) {
-      playNsSound(url);
-    }
+    const sel = nsSelect.options[nsSelect.selectedIndex];
+    if (sel?.value) playNs(sel.value, sel.textContent.trim());
   } else {
     nsActive = false;
-    stopNsAudio();
+    stopNs(() => setNowPlaying(null));
   }
 });
 
 nsSelect.addEventListener('change', () => {
-  const url = nsSelect.value;
-  if (!url) {
-    // Seleccionó "— SELECT —": apagar
-    if (nsActive) {
-      stopNsAudio();
-      nsToggle.checked = false;
-      nsActive = false;
-    }
+  const sel = nsSelect.options[nsSelect.selectedIndex];
+  if (!sel?.value) {
+    if (nsActive) { stopNs(() => setNowPlaying(null)); nsToggle.checked = false; nsActive = false; }
     return;
   }
-  if (nsToggle.checked && nsActive) {
-    // Ya activo: cambiar sonido con crossfade
-    playNsSound(url);
-  }
+  if (nsActive) playNs(sel.value, sel.textContent.trim());
 });
 
-nsVolRange.addEventListener('input', () => {
-  updateNsSliderUI();
-  if (nsGainNode && nsActive && nsAudioEl && !nsAudioEl.paused) {
-    const target = getNsVolume();
-    nsGainNode.gain.cancelScheduledValues(nsAudioCtx.currentTime);
-    nsGainNode.gain.setTargetAtTime(target, nsAudioCtx.currentTime, 0.1);
-  }
+nsVolSlider.addEventListener('input', () => {
+  const v = nsVolSlider.value;
+  nsVolPct.textContent = v + '%';
+  setRangeFill(nsVolSlider);
+  if (nsActive && nsAudioEl && !nsAudioEl.paused) nsAudioEl.volume = getNsVol();
+});
+setRangeFill(nsVolSlider);
+nsVolPct.textContent = nsVolSlider.value + '%';
+
+// ── Playback mode toggle ──
+const modeRepeat = document.getElementById('mode-repeat');
+const modeSeq    = document.getElementById('mode-seq');
+
+function setPlayMode(mode) {
+  playMode = mode;
+  modeRepeat.classList.toggle('active', mode === 'repeat');
+  modeSeq.classList.toggle('active',    mode === 'seq');
+  // Apply loop change to running audio immediately
+  if (nsAudioEl) nsAudioEl.loop = (mode === 'repeat');
+}
+
+modeRepeat.addEventListener('click', () => setPlayMode('repeat'));
+modeSeq.addEventListener('click',    () => setPlayMode('seq'));
+
+// ══════════════════════════════════════════════════════════════
+//  SOUND CONFIG PANEL  (editable URLs + add/delete + JSON IO)
+// ══════════════════════════════════════════════════════════════
+const LS_KEY   = 'zenorb_sounds_v1';
+const cfgBtn   = document.getElementById('ns-cfg-btn');
+const cfgPanel = document.getElementById('ns-config');
+const cfgSave  = document.getElementById('ns-cfg-save');
+const cfgActions = cfgPanel.querySelector('.ns-config-actions');
+
+// Build the list of editable rows from current <select> options
+function buildConfigRows() {
+  cfgPanel.querySelectorAll('.ns-config-row').forEach(r => r.remove());
+  Array.from(nsSelect.options).forEach((opt, i) => {
+    if (!opt.value) return;
+    cfgPanel.insertBefore(makeRow(opt.textContent.trim(), opt.value, i), cfgActions);
+  });
+}
+
+function makeRow(name, url, optIdx) {
+  const row = document.createElement('div');
+  row.className = 'ns-config-row';
+  row.dataset.idx = optIdx ?? ''; // '' = new row (not yet in select)
+  row.innerHTML = `
+    <span class="ns-config-idx">${optIdx != null ? String(optIdx).padStart(2,'0') : '+'}</span>
+    <input class="ns-config-name" type="text" value="${escHtml(name)}" placeholder="Nombre">
+    <input class="ns-config-url"  type="text" value="${escHtml(url)}"  placeholder="URL .mp3">
+    <button class="ns-del-btn" title="Eliminar">×</button>
+  `;
+  row.querySelector('.ns-del-btn').addEventListener('click', () => {
+    const idx = +row.dataset.idx;
+    if (!isNaN(idx) && nsSelect.options[idx]) nsSelect.remove(idx);
+    row.remove();
+    renumberRows();
+  });
+  return row;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function renumberRows() {
+  cfgPanel.querySelectorAll('.ns-config-row').forEach((r, i) => {
+    r.querySelector('.ns-config-idx').textContent = String(i + 1).padStart(2, '0');
+    r.dataset.idx = i + 1; // rough re-index; saveConfig rebuilds from scratch
+  });
+}
+
+// Write config rows back into the <select> and persist
+function saveConfig() {
+  const rows = cfgPanel.querySelectorAll('.ns-config-row');
+  const data = [];
+
+  // Rebuild select from scratch (handles adds + deletes cleanly)
+  const prevVal = nsSelect.value;
+  while (nsSelect.options.length > 1) nsSelect.remove(1); // keep "— SELECT —"
+
+  rows.forEach(row => {
+    const name = row.querySelector('.ns-config-name').value.trim();
+    const url  = row.querySelector('.ns-config-url').value.trim();
+    if (!name || !url) return;
+    const opt = new Option(name, url);
+    nsSelect.add(opt);
+    data.push({ name, url });
+  });
+
+  // Restore selection if URL still exists
+  nsSelect.value = prevVal;
+
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
+  cfgSave.textContent = 'Guardado ✓';
+  setTimeout(() => cfgSave.textContent = 'Guardar cambios', 1600);
+  buildConfigRows(); // refresh indices
+}
+
+// Populate select from a data array [{name, url}]
+function loadDataIntoSelect(data) {
+  while (nsSelect.options.length > 1) nsSelect.remove(1);
+  data.forEach(({ name, url }) => {
+    if (name && url) nsSelect.add(new Option(name, url));
+  });
+}
+
+function loadSavedSounds() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (Array.isArray(data) && data.length) loadDataIntoSelect(data);
+  } catch(e) {}
+}
+loadSavedSounds();
+
+// ── Open / close config panel ──
+cfgBtn.addEventListener('click', () => {
+  const open = cfgPanel.classList.toggle('open');
+  cfgBtn.classList.toggle('active', open);
+  if (open) buildConfigRows();
+});
+cfgSave.addEventListener('click', saveConfig);
+
+// ── Add new empty row ──
+document.getElementById('ns-add-btn').addEventListener('click', () => {
+  const row = makeRow('', '', null);
+  cfgPanel.insertBefore(row, cfgActions);
+  row.querySelector('.ns-config-name').focus();
 });
 
-// ====================== HIDE / SHOW UI ======================
-const toggleUiBtn = document.getElementById('toggle-ui-btn');
-const panel = document.querySelector('.panel');
-const stage = document.querySelector('.stage');
-let uiVisible = true;
-
-toggleUiBtn.addEventListener('click', () => {
-  uiVisible = !uiVisible;
-  if (uiVisible) {
-    panel.classList.remove('hidden');
-    stage.classList.remove('corners-hidden');
-    toggleUiBtn.textContent = 'HIDE UI';
-  } else {
-    panel.classList.add('hidden');
-    stage.classList.add('corners-hidden');
-    toggleUiBtn.textContent = 'SHOW UI';
-  }
+// ── Export JSON ──
+document.getElementById('ns-export-btn').addEventListener('click', () => {
+  const data = Array.from(nsSelect.options)
+    .filter(o => o.value)
+    .map(o => ({ name: o.textContent.trim(), url: o.value }));
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'zenorb-sounds.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
 });
 
-// ====================== MAIN LOOP ======================
-let last = 0;
+// ── Import JSON ──
+const importFileInput = document.getElementById('ns-import-file');
+document.getElementById('ns-import-btn').addEventListener('click', () => importFileInput.click());
+importFileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error('Not an array');
+      loadDataIntoSelect(data);
+      try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(err) {}
+      if (cfgPanel.classList.contains('open')) buildConfigRows();
+    } catch(err) {
+      console.warn('JSON import error:', err);
+    }
+  };
+  reader.readAsText(file);
+  importFileInput.value = ''; // reset so same file can be re-imported
+});
+
+// ══════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ══════════════════════════════════════════════════════════════
+const FRAME_MS = 14; // ~70fps cap
+let lastT = 0;
+
 function loop(t) {
-  if (t - last > 14) {
+  if (t - lastT >= FRAME_MS) {
+    update();
     draw();
-    tickBars();
-    last = t;
+    lastT = t;
   }
   requestAnimationFrame(loop);
 }
