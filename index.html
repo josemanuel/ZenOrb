@@ -18,16 +18,22 @@
     --text-mid:  #4a7fa0;
     --text-hi:   #a0e8d8;
     --scanline:  rgba(0,240,200,0.025);
+    /* Panel height — controls how much space the orb gets */
+    --panel-h:   clamp(200px, 36vh, 310px);
   }
 
-  html, body {
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
     width: 100%; height: 100%;
     background: var(--bg);
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   body::after {
@@ -42,20 +48,37 @@
     z-index: 10;
   }
 
+  /* ── Stage: full-height flex column, max 800px wide ── */
   .stage {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     width: 100%;
     max-width: 800px;
+    height: 100%;
     position: relative;
   }
 
-  /* Canvas wrapper enforces 1:1 aspect ratio responsively */
+  /* ── Canvas area: always a perfect square, as large as space allows ── */
   .canvas-wrap {
-    width: 100%;
-    aspect-ratio: 1 / 1;
+    /*
+     * Size = the smaller of: available width OR available height above the panel.
+     * We use a CSS custom property trick: both dimensions equal the same value,
+     * so the element is always square regardless of flex/container behaviour.
+     */
+    --orb-size: min(
+      100%,
+      calc(100vh - var(--panel-h))
+    );
+    width:  var(--orb-size);
+    height: var(--orb-size);
+    flex-shrink: 0;
+    align-self: center;
     position: relative;
+    /* Smooth transition for hide/show */
+    transition: width  0.55s cubic-bezier(.4,0,.2,1),
+                height 0.55s cubic-bezier(.4,0,.2,1);
   }
 
   canvas {
@@ -64,6 +87,7 @@
     height: 100%;
   }
 
+  /* ── Corner decorators ── */
   .corner {
     position: absolute;
     width: 22px; height: 22px;
@@ -71,30 +95,52 @@
     border-style: solid;
     opacity: 0.5;
     z-index: 2;
+    transition: opacity 0.5s ease;
   }
   .corner.tl { top: 0; left: 0; border-width: 1.5px 0 0 1.5px; }
   .corner.tr { top: 0; right: 0; border-width: 1.5px 1.5px 0 0; }
   .corner.bl { bottom: 0; left: 0; border-width: 0 0 1.5px 1.5px; }
   .corner.br { bottom: 0; right: 0; border-width: 0 1.5px 1.5px 0; }
 
-  /* ── Panel ── */
+  /* ── Panel: fixed height, scrollable only if CFG panel is open ── */
   .panel {
     width: 100%;
-    padding: 0 clamp(16px, 6vw, 48px) clamp(16px, 4vw, 32px);
+    height: var(--panel-h);
+    padding: 8px clamp(16px, 6vw, 48px) clamp(12px, 2.5vh, 24px);
     display: flex;
     flex-direction: column;
-    gap: clamp(8px, 1.5vw, 14px);
-    margin-top: -28px;
+    gap: clamp(5px, 1vh, 11px);
     position: relative;
     z-index: 2;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: height 0.5s ease, opacity 0.5s ease, transform 0.5s ease;
   }
+  /* Allow panel to scroll only when config rows are open */
+  .panel.cfg-open { overflow-y: auto; }
+
+  /* ── UI hidden state ── */
+  .ui-hidden {
+    /* Treat panel height as 0 so orb size formula fills the viewport */
+    --panel-h: 0px;
+  }
+  .ui-hidden .panel {
+    height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .ui-hidden .corner { opacity: 0; }
 
   .section-divider {
     width: 100%;
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--text-dim), transparent);
-    margin: 2px 0;
     opacity: 0.6;
+    flex-shrink: 0;
   }
 
   .section-label {
@@ -103,13 +149,14 @@
     letter-spacing: 0.26em;
     text-transform: uppercase;
     color: var(--text-dim);
-    padding-bottom: 2px;
+    flex-shrink: 0;
   }
 
   .bar-row {
     display: flex;
     align-items: center;
     gap: clamp(6px, 1.5vw, 12px);
+    flex-shrink: 0;
   }
 
   .bar-label {
@@ -191,17 +238,14 @@
     box-shadow: 0 0 6px rgba(10,240,200,0.5);
   }
 
-  /* ── Color strip preview (next to hue slider) ── */
   .color-strip {
-    width: 18px;
-    height: 12px;
+    width: 18px; height: 12px;
     border-radius: 2px;
     flex-shrink: 0;
     pointer-events: none;
     border: 1px solid var(--text-dim);
   }
 
-  /* ── Nat. sounds select ── */
   .ns-select {
     flex: 1;
     background: transparent;
@@ -227,7 +271,6 @@
   .ns-select:hover, .ns-select:focus { border-bottom-color: var(--orb-core); color: var(--text-hi); }
   .ns-select option { background: #0a1020; color: var(--text-mid); }
 
-  /* ── Icon button ── */
   .icon-btn {
     background: transparent;
     border: 1px solid var(--text-dim);
@@ -245,7 +288,6 @@
   .icon-btn:hover { border-color: var(--orb-core); color: var(--text-hi); }
   .icon-btn.active { border-color: var(--orb-core); color: var(--orb-core); }
 
-  /* ── Sound config panel ── */
   .ns-config {
     display: none;
     flex-direction: column;
@@ -256,176 +298,100 @@
   }
   .ns-config.open { display: flex; }
 
-  .ns-config-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .ns-config-row { display: flex; align-items: center; gap: 8px; }
   .ns-config-idx {
     font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    color: var(--text-dim);
-    width: 16px;
-    flex-shrink: 0;
-    text-align: right;
+    font-size: 8px; color: var(--text-dim);
+    width: 16px; flex-shrink: 0; text-align: right;
   }
   .ns-config-name {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.08em;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--text-dim);
-    color: var(--text-mid);
-    outline: none;
-    width: clamp(60px, 14vw, 90px);
-    flex-shrink: 0;
+    font-family: 'Space Mono', monospace; font-size: 8px;
+    letter-spacing: 0.08em; background: transparent; border: none;
+    border-bottom: 1px solid var(--text-dim); color: var(--text-mid);
+    outline: none; width: clamp(60px, 14vw, 90px); flex-shrink: 0;
     transition: border-color 0.2s, color 0.2s;
   }
   .ns-config-url {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.04em;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--text-dim);
-    color: var(--text-mid);
-    outline: none;
-    flex: 1;
-    min-width: 0;
+    font-family: 'Space Mono', monospace; font-size: 8px;
+    letter-spacing: 0.04em; background: transparent; border: none;
+    border-bottom: 1px solid var(--text-dim); color: var(--text-mid);
+    outline: none; flex: 1; min-width: 0;
     transition: border-color 0.2s, color 0.2s;
   }
-  .ns-config-name:focus,
-  .ns-config-url:focus { border-bottom-color: var(--orb-core); color: var(--text-hi); }
+  .ns-config-name:focus, .ns-config-url:focus { border-bottom-color: var(--orb-core); color: var(--text-hi); }
 
   .ns-config-save {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.14em;
-    text-align: center;
-    padding: 4px 0;
-    color: var(--text-dim);
-    cursor: pointer;
-    border: 1px solid var(--text-dim);
-    border-radius: 2px;
-    background: transparent;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    margin-top: 2px;
+    font-family: 'Space Mono', monospace; font-size: 8px;
+    letter-spacing: 0.14em; text-align: center; padding: 4px 0;
+    color: var(--text-dim); cursor: pointer;
+    border: 1px solid var(--text-dim); border-radius: 2px;
+    background: transparent; transition: all 0.2s;
+    text-transform: uppercase; margin-top: 2px;
   }
   .ns-config-save:hover { border-color: var(--orb-core); color: var(--orb-core); }
 
-  /* ── Config action bar (add / import / export) ── */
   .ns-config-actions {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    padding-top: 2px;
+    display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px;
   }
   .ns-config-actions .icon-btn { flex: 1; text-align: center; font-size: 8px; padding: 3px 4px; }
 
-  /* ── Delete row button ── */
   .ns-del-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    cursor: pointer;
-    padding: 0 3px;
-    flex-shrink: 0;
-    line-height: 1;
+    background: transparent; border: none; color: var(--text-dim);
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    cursor: pointer; padding: 0 3px; flex-shrink: 0; line-height: 1;
     transition: color 0.2s;
   }
   .ns-del-btn:hover { color: #ff4466; }
 
-  /* ── Playback mode pill buttons ── */
-  .play-mode-wrap {
-    display: flex;
-    gap: 6px;
-    flex: 1;
-  }
+  .play-mode-wrap { display: flex; gap: 6px; flex: 1; }
   .play-mode-btn {
-    flex: 1;
-    font-family: 'Space Mono', monospace;
-    font-size: clamp(6px, 1.1vw, 8px);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    background: transparent;
-    border: 1px solid var(--text-dim);
-    border-radius: 2px;
-    color: var(--text-dim);
-    cursor: pointer;
-    padding: 3px 4px;
-    transition: all 0.2s;
-    text-align: center;
-    white-space: nowrap;
+    flex: 1; font-family: 'Space Mono', monospace;
+    font-size: clamp(6px, 1.1vw, 8px); letter-spacing: 0.1em;
+    text-transform: uppercase; background: transparent;
+    border: 1px solid var(--text-dim); border-radius: 2px;
+    color: var(--text-dim); cursor: pointer; padding: 3px 4px;
+    transition: all 0.2s; text-align: center; white-space: nowrap;
   }
   .play-mode-btn:hover { border-color: var(--text-mid); color: var(--text-mid); }
   .play-mode-btn.active { border-color: var(--orb-core); color: var(--orb-core); background: rgba(10,240,200,0.06); }
 
-  /* ── Now-playing indicator ── */
   .ns-now-playing {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    min-width: 0;
-    transition: color 0.3s;
+    font-family: 'Space Mono', monospace; font-size: 8px;
+    letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0; transition: color 0.3s;
   }
   .ns-now-playing.playing { color: var(--orb-core); }
 
   /* ── Hide UI button ── */
   #hide-ui-btn {
     position: fixed;
-    bottom: 18px;
-    right: 18px;
+    bottom: 14px; right: 14px;
     z-index: 100;
     font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    background: rgba(4, 6, 13, 0.75);
-    border: 1px solid var(--text-dim);
-    border-radius: 3px;
-    color: var(--text-dim);
-    padding: 5px 10px;
+    font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+    background: rgba(4, 6, 13, 0.8);
+    border: 1px solid var(--text-dim); border-radius: 3px;
+    color: var(--text-dim); padding: 5px 10px;
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s, opacity 0.2s;
-    backdrop-filter: blur(4px);
+    transition: border-color 0.2s, color 0.2s, opacity 0.3s;
+    backdrop-filter: blur(6px);
   }
   #hide-ui-btn:hover { border-color: var(--orb-core); color: var(--text-hi); }
-
-  /* Panel + corners hide transition */
-  .panel, .corner {
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
-  .ui-hidden .panel {
-    opacity: 0;
-    transform: translateY(20px);
-    pointer-events: none;
-  }
-  .ui-hidden .corner { opacity: 0; }
-
-  /* Canvas-wrap fullscreen expand when UI hidden */
-  .canvas-wrap {
-    transition: width 0.55s cubic-bezier(.4,0,.2,1),
-                max-width 0.55s cubic-bezier(.4,0,.2,1),
-                margin 0.55s cubic-bezier(.4,0,.2,1);
-  }
+  .ui-hidden #hide-ui-btn { opacity: 0.4; }
 
   @media (max-width: 480px) {
-    .panel { gap: 10px; }
+    :root { --panel-h: clamp(180px, 42vh, 260px); }
     .switch { width: 52px; height: 22px; }
     .switch .slider:before { height: 14px; width: 14px; }
     input:checked + .slider:before { transform: translateX(28px); }
     .icon-btn { font-size: 8px; padding: 2px 5px; }
     .corner { width: 16px; height: 16px; }
+  }
+
+  /* Short screens: shrink panel further so orb always visible */
+  @media (max-height: 500px) {
+    :root { --panel-h: clamp(140px, 45vh, 200px); }
   }
 </style>
 </head>
@@ -1092,6 +1058,7 @@ loadSavedSounds();
 cfgBtn.addEventListener('click', () => {
   const open = cfgPanel.classList.toggle('open');
   cfgBtn.classList.toggle('active', open);
+  panel.classList.toggle('cfg-open', open);
   if (open) buildConfigRows();
 });
 cfgSave.addEventListener('click', saveConfig);
@@ -1299,51 +1266,17 @@ function effectiveColours() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  HIDE / SHOW UI  — orb expands to fill viewport when hidden
+//  HIDE / SHOW UI  — pure CSS transition, no JS sizing needed
 // ══════════════════════════════════════════════════════════════
-const hideBtn   = document.getElementById('hide-ui-btn');
-const canvasWrap = document.querySelector('.canvas-wrap');
-const stage      = document.querySelector('.stage');
-let uiHidden = false;
-
-function expandOrb() {
-  // Make the canvas-wrap fill as much of the viewport as possible (square)
-  const vMin = Math.min(window.innerWidth, window.innerHeight);
-  const size  = Math.round(vMin * 0.92); // 92% of the smaller dimension
-  canvasWrap.style.width    = size + 'px';
-  canvasWrap.style.maxWidth = size + 'px';
-  // Center horizontally if narrower than stage
-  canvasWrap.style.alignSelf = 'center';
-  // Also center the stage itself vertically in the viewport
-  stage.style.justifyContent = 'center';
-  stage.style.minHeight      = '100vh';
-  document.body.style.alignItems = 'center';
-}
-
-function contractOrb() {
-  canvasWrap.style.width    = '';
-  canvasWrap.style.maxWidth = '';
-  canvasWrap.style.alignSelf = '';
-  stage.style.justifyContent = '';
-  stage.style.minHeight      = '';
-  document.body.style.alignItems = '';
-}
+const hideBtn = document.getElementById('hide-ui-btn');
+const panel   = document.querySelector('.panel');
+let uiHidden  = false;
 
 hideBtn.addEventListener('click', () => {
   uiHidden = !uiHidden;
-  stage.classList.toggle('ui-hidden', uiHidden);
-  hideBtn.textContent    = uiHidden ? 'Show UI' : 'Hide UI';
-  hideBtn.style.opacity  = uiHidden ? '0.45' : '1';
-
-  if (uiHidden) {
-    expandOrb();
-  } else {
-    contractOrb();
-  }
+  document.querySelector('.stage').classList.toggle('ui-hidden', uiHidden);
+  hideBtn.textContent = uiHidden ? 'Show UI' : 'Hide UI';
 });
-
-// Keep orb size correct if window is resized while hidden
-window.addEventListener('resize', () => { if (uiHidden) expandOrb(); });
 
 // ══════════════════════════════════════════════════════════════
 //  MAIN LOOP  (patched to include sound-reactive ticks)
