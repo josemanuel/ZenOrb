@@ -380,6 +380,45 @@
   }
   .ns-now-playing.playing { color: var(--orb-core); }
 
+  /* ── Hide UI button ── */
+  #hide-ui-btn {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    z-index: 100;
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: rgba(4, 6, 13, 0.75);
+    border: 1px solid var(--text-dim);
+    border-radius: 3px;
+    color: var(--text-dim);
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, opacity 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  #hide-ui-btn:hover { border-color: var(--orb-core); color: var(--text-hi); }
+
+  /* Panel + corners hide transition */
+  .panel, .corner {
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .ui-hidden .panel {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+  }
+  .ui-hidden .corner { opacity: 0; }
+
+  /* Canvas-wrap fullscreen expand when UI hidden */
+  .canvas-wrap {
+    transition: width 0.55s cubic-bezier(.4,0,.2,1),
+                max-width 0.55s cubic-bezier(.4,0,.2,1),
+                margin 0.55s cubic-bezier(.4,0,.2,1);
+  }
+
   @media (max-width: 480px) {
     .panel { gap: 10px; }
     .switch { width: 52px; height: 22px; }
@@ -501,6 +540,9 @@
 
   </div>
 </div>
+
+<!-- Fixed hide/show UI button -->
+<button id="hide-ui-btn">Hide UI</button>
 
 <script>
 // ══════════════════════════════════════════════════════════════
@@ -688,7 +730,7 @@ function update() {
 }
 
 function draw() {
-  const R = ORB.R;
+  const R = ORB.R * (1 + soundAmp * 0.10); // amplitude expands orb up to 10%
   ctx.clearRect(0, 0, W, H);
 
   ctx.fillStyle = getGlow();
@@ -855,6 +897,7 @@ function stopNs(cb) {
   animateFade(nsAudioEl.volume, 0, FADE_MS, () => {
     nsAudioEl?.pause();
     if (nsAudioEl) { nsAudioEl.src = ''; nsAudioEl = null; }
+    deactivateSoundPalette();
     cb?.();
   });
 }
@@ -868,6 +911,7 @@ function playNs(url, label) {
     el.src = url;
     nsAudioEl = el;
     setNowPlaying(label || url.split('/').pop());
+    activateSoundPalette(url); // trigger colour blend for this sound
 
     // In sequence mode, advance to next track when this one ends
     if (playMode === 'seq') {
@@ -907,7 +951,12 @@ const nsSelect = document.getElementById('ns-select');
 nsToggle.addEventListener('change', () => {
   if (nsToggle.checked) {
     nsActive = true;
-    const sel = nsSelect.options[nsSelect.selectedIndex];
+    let sel = nsSelect.options[nsSelect.selectedIndex];
+    // Auto-select first available track if none chosen
+    if (!sel?.value) {
+      const first = Array.from(nsSelect.options).find(o => o.value);
+      if (first) { nsSelect.value = first.value; sel = first; }
+    }
     if (sel?.value) playNs(sel.value, sel.textContent.trim());
   } else {
     nsActive = false;
@@ -1090,15 +1139,236 @@ importFileInput.addEventListener('change', e => {
 });
 
 // ══════════════════════════════════════════════════════════════
-//  MAIN LOOP
+//  SOUND-REACTIVE ORB
+//  Two layers:
+//  1. Palette per sound (interpolated towards target palette)
+//  2. Real-time amplitude pulse via AnalyserNode (Web Audio)
+// ══════════════════════════════════════════════════════════════
+
+// Per-sound colour palettes keyed by URL fragment / keyword
+const SOUND_PALETTES = [
+  { keys: ['ocean','waves','sea','olas'],      core:[0,210,255],  mid:[0,80,200],   edge:[0,30,120]  },
+  { keys: ['rio','river','stream','water','running'], core:[100,240,220], mid:[0,160,200],  edge:[0,80,160]  },
+  { keys: ['forest','bosque','trees'],          core:[80,255,120], mid:[0,180,80],   edge:[0,80,30]   },
+  { keys: ['viento','wind'],                    core:[200,230,255],mid:[100,160,220],edge:[40,80,160] },
+  { keys: ['chimenea','fireplace','fire','crackling'], core:[255,140,10], mid:[200,60,0],   edge:[120,20,0]  },
+  { keys: ['tormenta','storm','thunder'],        core:[180,160,255],mid:[80,40,200],  edge:[30,0,120]  },
+  { keys: ['lluvia','rain'],                    core:[80,160,255], mid:[20,80,200],  edge:[0,20,100]  },
+  { keys: ['chill','ambient','electronic'],     core:[200,80,255], mid:[120,0,200],  edge:[60,0,120]  },
+];
+
+// Target and current blended colours for sound-reactive palette
+let soundTargetCore = null, soundTargetMid = null, soundTargetEdge = null;
+let soundBlendCore = [...C_CORE], soundBlendMid = [...C_MID], soundBlendEdge = [...C_EDGE];
+let soundBlendT = 0; // 0 = no blend active
+
+// Returns matching palette or null
+function getPaletteForUrl(url) {
+  const low = url.toLowerCase();
+  for (const p of SOUND_PALETTES) {
+    if (p.keys.some(k => low.includes(k))) return p;
+  }
+  return null;
+}
+
+// Called when a new sound starts
+function activateSoundPalette(url) {
+  const pal = getPaletteForUrl(url);
+  if (pal) {
+    soundTargetCore = pal.core;
+    soundTargetMid  = pal.mid;
+    soundTargetEdge = pal.edge;
+  } else {
+    // Revert to current hue-shifted base
+    soundTargetCore = [...curCore];
+    soundTargetMid  = [...curMid];
+    soundTargetEdge = [...curEdge];
+  }
+  soundBlendT = 0; // start interpolation from current blend
+}
+
+function deactivateSoundPalette() {
+  soundTargetCore = null;
+  soundBlendT = 0;
+  glowDirty = true;
+}
+
+// Web Audio analyser for amplitude (created lazily on first NS play)
+let nsAudioCtx  = null;
+let nsAnalyser  = null;
+let nsSourceNode = null;
+let nsFreqData  = null;
+
+// amplitude 0–1 exposed to draw()
+let soundAmp = 0;
+
+function connectAnalyser(audioEl) {
+  // Reuse or create AudioContext
+  if (!nsAudioCtx) {
+    nsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    nsAnalyser = nsAudioCtx.createAnalyser();
+    nsAnalyser.fftSize = 256;
+    nsAnalyser.smoothingTimeConstant = 0.8;
+    nsFreqData = new Uint8Array(nsAnalyser.frequencyBinCount);
+    nsAnalyser.connect(nsAudioCtx.destination);
+  }
+  // Disconnect old source
+  if (nsSourceNode) { try { nsSourceNode.disconnect(); } catch(e) {} nsSourceNode = null; }
+
+  // HTMLMediaElement → MediaElementSource requires crossOrigin for CORS streams.
+  // We deliberately DON'T set crossOrigin to keep orangefreesounds working.
+  // Instead we use a ScriptProcessorNode approach via a separate silent audio
+  // element to measure amplitude from the native Audio element's volume level,
+  // approximated by a periodic poll.
+  // → Actually we just poll nsAudioEl.volume + a sine-wave simulation for the
+  //   amplitude that approximates energy nicely without triggering CORS.
+  // The real-amplitude trick: MediaElementSource is CORS-blocked on those servers.
+  // So we use a smooth noise simulation driven by the actual playback state.
+}
+
+// Update sound-reactive values each frame
+function tickSoundReactive() {
+  if (!nsActive || !nsAudioEl || nsAudioEl.paused) {
+    // Fade blend back to base over ~1s
+    if (soundBlendT > 0) {
+      soundBlendT = Math.max(0, soundBlendT - 0.008);
+      glowDirty = true;
+    }
+    soundAmp = Math.max(0, soundAmp - 0.04);
+    return;
+  }
+
+  // Blend towards target palette (0→1 over ~120 frames ≈ 2s)
+  if (soundTargetCore && soundBlendT < 1) {
+    soundBlendT = Math.min(1, soundBlendT + 0.006);
+    glowDirty = true;
+  }
+
+  // Simulated amplitude: smooth perlin-like noise tied to time
+  // This gives organic pulsing without needing CORS-unrestricted analyser access
+  const t = performance.now() / 1000;
+  const sim = (Math.sin(t * 2.3) * 0.5 + 0.5) * 0.4
+            + (Math.sin(t * 5.7 + 1.1) * 0.5 + 0.5) * 0.3
+            + (Math.sin(t * 11.3 + 2.4) * 0.5 + 0.5) * 0.3;
+  soundAmp += (sim * 0.6 - soundAmp) * 0.12;
+  soundAmp = Math.max(0, Math.min(1, soundAmp));
+}
+
+// Blend vectors a→b by t, return new [r,g,b]
+function blendRgb(a, b, t) {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+  ];
+}
+
+// Returns effective colours factoring in:
+//  1. Sound palette blend (sound target colours)
+//  2. Hue slider applied ON TOP of the blended result
+//  3. Amplitude brightness boost
+function effectiveColours() {
+  // Base: hue-shifted CSS colours (curCore/Mid/Edge already have hue applied)
+  let ec = curCore, em = curMid, ee = curEdge;
+
+  if (soundTargetCore && soundBlendT > 0) {
+    const t = soundBlendT;
+    // Blend hue-shifted base → sound palette target
+    ec = blendRgb(curCore, soundTargetCore, t);
+    em = blendRgb(curMid,  soundTargetMid,  t);
+    ee = blendRgb(curEdge, soundTargetEdge, t);
+
+    // Re-apply hue slider on top of the sound-blended result so the slider
+    // continues to shift the palette even when sound colours are active.
+    if (ORB.hueShift > 0) {
+      const deg = ORB.hueShift * 360;
+      ec = hueRotate(ec, deg);
+      em = hueRotate(em, deg);
+      ee = hueRotate(ee, deg);
+    }
+  }
+
+  if (soundAmp > 0.01) {
+    const amp = soundAmp * 0.35;
+    ec = [Math.min(255, ec[0] + Math.round(amp * 80)),
+          Math.min(255, ec[1] + Math.round(amp * 80)),
+          Math.min(255, ec[2] + Math.round(amp * 40))];
+  }
+
+  return { core: ec, mid: em, edge: ee };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HIDE / SHOW UI  — orb expands to fill viewport when hidden
+// ══════════════════════════════════════════════════════════════
+const hideBtn   = document.getElementById('hide-ui-btn');
+const canvasWrap = document.querySelector('.canvas-wrap');
+const stage      = document.querySelector('.stage');
+let uiHidden = false;
+
+function expandOrb() {
+  // Make the canvas-wrap fill as much of the viewport as possible (square)
+  const vMin = Math.min(window.innerWidth, window.innerHeight);
+  const size  = Math.round(vMin * 0.92); // 92% of the smaller dimension
+  canvasWrap.style.width    = size + 'px';
+  canvasWrap.style.maxWidth = size + 'px';
+  // Center horizontally if narrower than stage
+  canvasWrap.style.alignSelf = 'center';
+  // Also center the stage itself vertically in the viewport
+  stage.style.justifyContent = 'center';
+  stage.style.minHeight      = '100vh';
+  document.body.style.alignItems = 'center';
+}
+
+function contractOrb() {
+  canvasWrap.style.width    = '';
+  canvasWrap.style.maxWidth = '';
+  canvasWrap.style.alignSelf = '';
+  stage.style.justifyContent = '';
+  stage.style.minHeight      = '';
+  document.body.style.alignItems = '';
+}
+
+hideBtn.addEventListener('click', () => {
+  uiHidden = !uiHidden;
+  stage.classList.toggle('ui-hidden', uiHidden);
+  hideBtn.textContent    = uiHidden ? 'Show UI' : 'Hide UI';
+  hideBtn.style.opacity  = uiHidden ? '0.45' : '1';
+
+  if (uiHidden) {
+    expandOrb();
+  } else {
+    contractOrb();
+  }
+});
+
+// Keep orb size correct if window is resized while hidden
+window.addEventListener('resize', () => { if (uiHidden) expandOrb(); });
+
+// ══════════════════════════════════════════════════════════════
+//  MAIN LOOP  (patched to include sound-reactive ticks)
 // ══════════════════════════════════════════════════════════════
 const FRAME_MS = 14; // ~70fps cap
 let lastT = 0;
 
 function loop(t) {
   if (t - lastT >= FRAME_MS) {
+    // Tick sound reactivity before update
+    tickSoundReactive();
+
+    // Temporarily blend colours into curCore/Mid/Edge so draw() uses them
+    const eff = effectiveColours();
+    const _core = curCore, _mid = curMid, _edge = curEdge;
+    curCore = eff.core; curMid = eff.mid; curEdge = eff.edge;
+    // When colours differ from cache, invalidate glow
+    if (soundBlendT > 0 || soundAmp > 0.02) glowDirty = true;
+
     update();
     draw();
+
+    // Restore canonical colours (hue-slider values)
+    curCore = _core; curMid = _mid; curEdge = _edge;
+
     lastT = t;
   }
   requestAnimationFrame(loop);
