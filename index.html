@@ -18,8 +18,8 @@
     --text-mid:  #4a7fa0;
     --text-hi:   #a0e8d8;
     --scanline:  rgba(0,240,200,0.025);
-    /* Panel height — controls how much space the orb gets */
-    --panel-h:   clamp(200px, 36vh, 310px);
+    /* Panel height — more rows now */
+    --panel-h:   clamp(240px, 44vh, 360px);
   }
 
   html {
@@ -81,10 +81,14 @@
                 height 0.55s cubic-bezier(.4,0,.2,1);
   }
 
+  /* ── Canvas: fills its square container exactly ── */
   canvas {
     display: block;
+    /* Let JS (ResizeObserver) control exact pixel dimensions */
     width: 100%;
     height: 100%;
+    /* Prevent any browser-side stretching */
+    object-fit: contain;
   }
 
   /* ── Corner decorators ── */
@@ -205,6 +209,34 @@
   }
   input:checked + .slider { background: linear-gradient(90deg, var(--orb-mid), var(--orb-core)); }
   input:checked + .slider:before { transform: translateX(40px); background-color: var(--orb-core); }
+
+  /* ── Compact toggle (switch-sm) — for audio rows ── */
+  .switch-sm {
+    position: relative;
+    display: inline-block;
+    width: 36px; height: 18px;
+    flex-shrink: 0;
+  }
+  .switch-sm input { opacity: 0; width: 0; height: 0; }
+  .slider-sm {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--text-dim);
+    transition: .35s;
+    border-radius: 18px;
+  }
+  .slider-sm:before {
+    position: absolute;
+    content: "";
+    height: 12px; width: 12px;
+    left: 3px; bottom: 3px;
+    background-color: var(--text-mid);
+    transition: .35s;
+    border-radius: 50%;
+  }
+  input:checked + .slider-sm { background: linear-gradient(90deg, var(--orb-mid), var(--orb-core)); }
+  input:checked + .slider-sm:before { transform: translateX(18px); background-color: var(--orb-core); }
 
   /* ── Generic range ── */
   .ctl-range {
@@ -446,37 +478,100 @@
     <div class="section-divider"></div>
     <div class="section-label">Audio</div>
 
+    <!-- Binaural Zen — compact -->
     <div class="bar-row">
       <span class="bar-label">BINAURAL ZEN</span>
-      <label class="switch">
+      <label class="switch-sm">
         <input type="checkbox" id="zen-toggle">
-        <span class="slider"></span>
+        <span class="slider-sm"></span>
       </label>
       <span class="bar-pct" id="zen-status">OFF</span>
     </div>
 
+    <!-- Nature Sounds -->
     <div class="bar-row">
       <span class="bar-label">NAT. SOUNDS</span>
-      <label class="switch">
+      <label class="switch-sm">
         <input type="checkbox" id="ns-toggle">
-        <span class="slider"></span>
+        <span class="slider-sm"></span>
       </label>
       <select class="ns-select" id="ns-select">
         <option value="">— SELECT —</option>
-        <option value="https://orangefreesounds.com/wp-content/uploads/2026/02/Calm-ambient-music-ocean-waves-for-sleep-and-relaxation.mp3">Ocean Waves</option>
         <option value="https://orangefreesounds.com/wp-content/uploads/2026/03/Running-water-sound-for-sleep-relaxing-stream-ambience.mp3">Río Tranquilo</option>
-        <option value="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3">Chillout</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/01/Waterfall-and-birdsong-ambience-nature-white-noise-sound-effect.mp3">Cascada y Pájaros</option>
         <option value="https://www.orangefreesounds.com/wp-content/uploads/2017/09/Forest-ambience.mp3">Bosque</option>
         <option value="https://www.orangefreesounds.com/wp-content/uploads/2025/11/Wind-blowing-through-trees-sound-effect.mp3">Viento</option>
-        <option value="https://www.orangefreesounds.com/wp-content/uploads/2017/06/Crackling-fireplace.mp3">Chimenea</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/01/Relaxing-summer-forest-ambience.mp3">Bosque de Verano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/08/Summer-beach-ambience-sound-effect.mp3">Playa de Verano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/08/Forest-stream-babbling-sound-effect.mp3">Arroyo en Bosque</option>
         <option value="https://bigsoundbank.com/UPLOAD/mp3/0267.mp3">Olas del Mar</option>
-        <option value="https://orangefreesounds.com/wp-content/uploads/2025/12/Distant-storm-thunder-sound-effect.mp3">Tormenta</option>
-        <option value="https://orangefreesounds.com/wp-content/uploads/2026/04/Rain-falling-under-an-umbrella-in-the-city-sound-effect.mp3">Lluvia</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/04/Rain-falling-under-an-umbrella-in-the-city-sound-effect.mp3">Lluvia en Ciudad</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/01/Leaves-blowing-in-the-wind-sound-effect.mp3">Hojas al Viento</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/03/Rain-thunder-sounds-for-sleeping.mp3">Lluvia para Dormir</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/09/Thunderstorm-sound-effect-with-rain.mp3">Tormenta con Lluvia</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/12/Distant-storm-thunder-sound-effect.mp3">Tormenta Lejana</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/07/Realistic-thunder-and-rain-sound-effect.mp3">Trueno y Lluvia</option>
+        <option value="https://www.orangefreesounds.com/wp-content/uploads/2017/06/Crackling-fireplace.mp3">Chimenea</option>
       </select>
       <button class="icon-btn" id="ns-cfg-btn">CFG</button>
     </div>
 
-    <!-- Playback mode + now-playing -->
+    <!-- NS config panel -->
+    <div class="ns-config" id="ns-config">
+      <div class="ns-config-actions">
+        <button class="icon-btn" id="ns-add-btn">+ ADD</button>
+        <button class="icon-btn" id="ns-export-btn">↓ JSON</button>
+        <button class="icon-btn" id="ns-import-btn">↑ JSON</button>
+        <input type="file" id="ns-import-file" accept=".json" style="display:none">
+      </div>
+      <button class="ns-config-save" id="ns-cfg-save">Guardar cambios</button>
+    </div>
+
+    <!-- ChillOut -->
+    <div class="bar-row">
+      <span class="bar-label">CHILLOUT</span>
+      <label class="switch-sm">
+        <input type="checkbox" id="co-toggle">
+        <span class="slider-sm"></span>
+      </label>
+      <select class="ns-select" id="co-select">
+        <option value="">— SELECT —</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2024/06/Deep-ambient-music-gentle-synth-texture.mp3">Deep Ambient Synth</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2024/06/Relaxing-instrumental-piano-music.mp3">Piano Instrumental</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2024/10/Calming-background-music.mp3">Calming Background</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/01/Sad-piano-music-emotional-piano-song.mp3">Sad Piano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/02/Calm-piano-synth-music-for-relaxation.mp3">Piano & Synth Relax</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/03/Asmr-relaxation-music.mp3">ASMR Relaxation</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/03/Relaxing-music-for-stress-relief.mp3">Stress Relief</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/07/Warm-relaxing-synthesizer-background-music-ambient-chillout-sound-for-meditation-and-focus.mp3">Warm Synth Meditation</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/09/One-minute-nostalgic-piano-background-music.mp3">Nostalgic Piano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/09/Warm-ambient-relaxing-synth-pad-music.mp3">Warm Synth Pad</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/11/Relaxing-analog-synth-piano-music.mp3">Analog Synth Piano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/11/Relaxing-ocean-waves-with-music.mp3">Ocean Waves & Music</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/12/Free-o-christmas-tree-relaxing-solo-piano.mp3">Solo Piano (Xmas)</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/12/Melancholic-solo-piano-piece-reflective-classical-piano-music.mp3">Melancholic Piano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2025/12/Winter-piano-music.mp3">Winter Piano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/01/Morning-piano-theme.mp3">Morning Piano</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/01/Winter-little-princess-lullaby-enchanting-music-box-melody.mp3">Music Box Lullaby</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/02/Calm-ambient-music-ocean-waves-for-sleep-and-relaxation.mp3">Calm Ocean Ambient</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/02/Sad-piano-instrumental.mp3">Sad Piano Instrumental</option>
+        <option value="https://orangefreesounds.com/wp-content/uploads/2026/04/Ambient-electronic-soundscape-chill-analog-textures.mp3">Chill Analog Textures</option>
+      </select>
+      <button class="icon-btn" id="co-cfg-btn">CFG</button>
+    </div>
+
+    <!-- CO config panel -->
+    <div class="ns-config" id="co-config">
+      <div class="ns-config-actions">
+        <button class="icon-btn" id="co-add-btn">+ ADD</button>
+        <button class="icon-btn" id="co-export-btn">↓ JSON</button>
+        <button class="icon-btn" id="co-import-btn">↑ JSON</button>
+        <input type="file" id="co-import-file" accept=".json" style="display:none">
+      </div>
+      <button class="ns-config-save" id="co-cfg-save">Guardar cambios</button>
+    </div>
+
+    <!-- Playback mode + now-playing (shared) -->
     <div class="bar-row">
       <span class="bar-label">PLAY MODE</span>
       <div class="play-mode-wrap">
@@ -486,22 +581,17 @@
       <span class="ns-now-playing" id="ns-now-playing">—</span>
     </div>
 
-    <!-- Sound URL editor (hidden by default) -->
-    <div class="ns-config" id="ns-config">
-      <!-- rows injected by JS -->
-      <div class="ns-config-actions">
-        <button class="icon-btn" id="ns-add-btn">+ ADD</button>
-        <button class="icon-btn" id="ns-export-btn">↓ EXPORT JSON</button>
-        <button class="icon-btn" id="ns-import-btn">↑ IMPORT JSON</button>
-        <input type="file" id="ns-import-file" accept=".json" style="display:none">
-      </div>
-      <button class="ns-config-save" id="ns-cfg-save">Guardar cambios</button>
+    <!-- Volume + react intensity -->
+    <div class="bar-row">
+      <span class="bar-label">VOLUME</span>
+      <input type="range" class="ctl-range" id="ns-volume" min="0" max="100" value="60">
+      <span class="bar-pct" id="ns-vol-pct">60%</span>
     </div>
 
     <div class="bar-row">
-      <span class="bar-label">NAT. VOLUME</span>
-      <input type="range" class="ctl-range" id="ns-volume" min="0" max="100" value="60">
-      <span class="bar-pct" id="ns-vol-pct">60%</span>
+      <span class="bar-label">REACT</span>
+      <input type="range" class="ctl-range" id="react-intensity" min="0" max="100" value="40">
+      <span class="bar-pct" id="react-pct">40%</span>
     </div>
 
   </div>
@@ -526,13 +616,38 @@ const BASE_VEL_X = 0.0004;
 const BASE_VEL_Y = 0.0009;
 const BASE_PULSE_SPEEDS = [0.0006, 0.00075, 0.0009, 0.00105];
 
+// Declare early so ResizeObserver can safely reference it
+let glowDirty = true;
+let glowCache = null;
+
 // ══════════════════════════════════════════════════════════════
-//  CANVAS
+//  CANVAS — dynamic square sizing via ResizeObserver
 // ══════════════════════════════════════════════════════════════
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
-const CX = W / 2, CY = H / 2;
+
+// These are updated whenever the canvas-wrap resizes
+let W = 800, H = 800, CX = 400, CY = 400;
+
+function syncCanvasSize() {
+  const wrap = canvas.parentElement;
+  const rect  = wrap.getBoundingClientRect();
+  // Use the smaller dimension to guarantee a square pixel buffer
+  const size  = Math.round(Math.min(rect.width, rect.height));
+  if (size < 10) return; // guard against zero during transitions
+  if (canvas.width !== size || canvas.height !== size) {
+    canvas.width  = size;
+    canvas.height = size;
+    W  = size; H  = size;
+    CX = size / 2; CY = size / 2;
+    // glowDirty is declared before this function, safe to set directly
+    glowDirty = true;
+  }
+}
+
+// Observe the canvas-wrap for size changes (handles hide/show transitions)
+new ResizeObserver(syncCanvasSize).observe(canvas.parentElement);
+syncCanvasSize(); // initial sync
 
 // ══════════════════════════════════════════════════════════════
 //  COLOUR SYSTEM — parse CSS vars once, hue-rotate on demand
@@ -568,8 +683,7 @@ const C_EDGE = hexToRgb(RS.getPropertyValue('--orb-edge'));
 let curCore = [...C_CORE];
 let curMid  = [...C_MID];
 let curEdge = [...C_EDGE];
-let glowDirty = true;
-let glowCache = null;
+// glowDirty and glowCache declared earlier (before canvas init)
 
 function applyHue(t) {
   const deg = t * 360;
@@ -823,94 +937,103 @@ document.getElementById('zen-toggle').addEventListener('change', e => {
 });
 
 // ══════════════════════════════════════════════════════════════
-//  NATURAL SOUNDS  (native Audio — no CORS restriction)
+//  SHARED AUDIO ENGINE (Natural Sounds + ChillOut)
 // ══════════════════════════════════════════════════════════════
-let nsAudioEl = null, nsActive = false, nsFadeFrame = null;
+let nsAudioEl = null, nsActive = false, coAudioEl = null, coActive = false;
+let nsFadeFrame = null, coFadeFrame = null;
 const FADE_MS = 900;
 
-// Playback mode: 'repeat' (loop current) | 'seq' (advance playlist)
 let playMode = 'repeat';
 
-const nsVolSlider   = document.getElementById('ns-volume');
-const nsVolPct      = document.getElementById('ns-vol-pct');
-const nsNowPlaying  = document.getElementById('ns-now-playing');
+const nsVolSlider  = document.getElementById('ns-volume');
+const nsVolPct     = document.getElementById('ns-vol-pct');
+const nsNowPlaying = document.getElementById('ns-now-playing');
 
 function getNsVol() { return nsVolSlider.value / 100; }
 
 function setNowPlaying(name) {
-  if (name) {
-    nsNowPlaying.textContent = name;
-    nsNowPlaying.classList.add('playing');
-  } else {
-    nsNowPlaying.textContent = '—';
-    nsNowPlaying.classList.remove('playing');
-  }
+  if (name) { nsNowPlaying.textContent = name; nsNowPlaying.classList.add('playing'); }
+  else       { nsNowPlaying.textContent = '—'; nsNowPlaying.classList.remove('playing'); }
 }
 
-function animateFade(from, to, ms, done) {
-  if (nsFadeFrame) cancelAnimationFrame(nsFadeFrame);
+// Generic fade animation for a given audio element
+function animateFadeEl(getEl, frame, from, to, ms, done) {
+  if (frame.id) cancelAnimationFrame(frame.id);
   const t0 = performance.now();
   const step = now => {
     const t = Math.min((now - t0) / ms, 1);
-    if (nsAudioEl) nsAudioEl.volume = Math.max(0, Math.min(1, from + (to - from) * t));
-    t < 1 ? (nsFadeFrame = requestAnimationFrame(step)) : (nsFadeFrame = null, done?.());
+    const el = getEl();
+    if (el) el.volume = Math.max(0, Math.min(1, from + (to - from) * t));
+    t < 1 ? (frame.id = requestAnimationFrame(step)) : (frame.id = null, done?.());
   };
-  nsFadeFrame = requestAnimationFrame(step);
+  frame.id = requestAnimationFrame(step);
 }
 
-function stopNs(cb) {
-  if (!nsAudioEl) { cb?.(); return; }
-  animateFade(nsAudioEl.volume, 0, FADE_MS, () => {
-    nsAudioEl?.pause();
-    if (nsAudioEl) { nsAudioEl.src = ''; nsAudioEl = null; }
+// Frames as objects so they can be mutated inside closures
+const nsFr = { id: null }, coFr = { id: null };
+
+function stopAudioEl(getEl, setEl, frame, cb) {
+  const el = getEl();
+  if (!el) { cb?.(); return; }
+  animateFadeEl(getEl, frame, el.volume, 0, FADE_MS, () => {
+    const e = getEl(); if (e) { e.pause(); e.src = ''; }
+    setEl(null);
     deactivateSoundPalette();
     cb?.();
   });
 }
 
-function playNs(url, label) {
+function playAudioEl(url, label, getEl, setEl, frame, otherGetEl, otherSetEl, otherFr) {
   if (!url) return;
+  // Stop the other channel if playing
+  const other = otherGetEl();
+  if (other && !other.paused) {
+    animateFadeEl(otherGetEl, otherFr, other.volume, 0, FADE_MS, () => {
+      const e = otherGetEl(); if (e) { e.pause(); e.src = ''; } otherSetEl(null);
+    });
+  }
   const start = () => {
     const el = new Audio();
     el.loop = (playMode === 'repeat');
-    el.volume = 0;
-    el.src = url;
-    nsAudioEl = el;
+    el.volume = 0; el.src = url;
+    setEl(el);
     setNowPlaying(label || url.split('/').pop());
-    activateSoundPalette(url); // trigger colour blend for this sound
-
-    // In sequence mode, advance to next track when this one ends
+    activateSoundPalette(url);
     if (playMode === 'seq') {
-      el.addEventListener('ended', advancePlaylist, { once: true });
+      el.addEventListener('ended', () => advancePlaylist(getEl, setEl, frame, otherGetEl, otherSetEl, otherFr), { once: true });
     }
-
     el.play()
-      .then(() => animateFade(0, getNsVol(), FADE_MS, null))
-      .catch(e => console.warn('NS playback error:', e));
+      .then(() => animateFadeEl(getEl, frame, 0, getNsVol(), FADE_MS, null))
+      .catch(e => console.warn('Audio error:', e));
   };
-
-  if (nsAudioEl && !nsAudioEl.paused) {
-    animateFade(nsAudioEl.volume, 0, FADE_MS, () => {
-      nsAudioEl?.pause();
-      if (nsAudioEl) { nsAudioEl.src = ''; nsAudioEl = null; }
-      start();
+  const cur = getEl();
+  if (cur && !cur.paused) {
+    animateFadeEl(getEl, frame, cur.volume, 0, FADE_MS, () => {
+      const e = getEl(); if (e) { e.pause(); e.src = ''; } setEl(null); start();
     });
   } else {
-    if (nsAudioEl) { nsAudioEl.pause(); nsAudioEl.src = ''; nsAudioEl = null; }
+    if (cur) { cur.pause(); cur.src = ''; setEl(null); }
     start();
   }
 }
 
-// Move to the next non-empty option in the select, wrapping around
-function advancePlaylist() {
-  const opts = Array.from(nsSelect.options).filter(o => o.value);
+function advancePlaylist(getEl, setEl, frame, otherGetEl, otherSetEl, otherFr) {
+  // Figure out which select is active
+  const sel = nsActive ? nsSelect : (coActive ? coSelect : null);
+  if (!sel) return;
+  const opts = Array.from(sel.options).filter(o => o.value);
   if (!opts.length) return;
-  const cur = opts.findIndex(o => o.value === (nsAudioEl?.src || nsSelect.value));
+  const cur = opts.findIndex(o => o.value === (getEl()?.src || sel.value));
   const next = opts[(cur + 1) % opts.length];
-  nsSelect.value = next.value;
-  playNs(next.value, next.textContent.trim());
+  sel.value = next.value;
+  playAudioEl(next.value, next.textContent.trim(), getEl, setEl, frame, otherGetEl, otherSetEl, otherFr);
 }
 
+// Accessors
+const getNsEl = () => nsAudioEl, setNsEl = v => { nsAudioEl = v; };
+const getCoEl = () => coAudioEl, setCoEl = v => { coAudioEl = v; };
+
+// ── Natural Sounds controls ──
 const nsToggle = document.getElementById('ns-toggle');
 const nsSelect = document.getElementById('ns-select');
 
@@ -918,191 +1041,213 @@ nsToggle.addEventListener('change', () => {
   if (nsToggle.checked) {
     nsActive = true;
     let sel = nsSelect.options[nsSelect.selectedIndex];
-    // Auto-select first available track if none chosen
     if (!sel?.value) {
       const first = Array.from(nsSelect.options).find(o => o.value);
       if (first) { nsSelect.value = first.value; sel = first; }
     }
-    if (sel?.value) playNs(sel.value, sel.textContent.trim());
+    if (sel?.value) playAudioEl(sel.value, sel.textContent.trim(), getNsEl, setNsEl, nsFr, getCoEl, setCoEl, coFr);
   } else {
     nsActive = false;
-    stopNs(() => setNowPlaying(null));
+    stopAudioEl(getNsEl, setNsEl, nsFr, () => setNowPlaying(null));
   }
 });
-
 nsSelect.addEventListener('change', () => {
   const sel = nsSelect.options[nsSelect.selectedIndex];
-  if (!sel?.value) {
-    if (nsActive) { stopNs(() => setNowPlaying(null)); nsToggle.checked = false; nsActive = false; }
-    return;
-  }
-  if (nsActive) playNs(sel.value, sel.textContent.trim());
+  if (!sel?.value) { if (nsActive) { stopAudioEl(getNsEl, setNsEl, nsFr, () => setNowPlaying(null)); nsToggle.checked = false; nsActive = false; } return; }
+  if (nsActive) playAudioEl(sel.value, sel.textContent.trim(), getNsEl, setNsEl, nsFr, getCoEl, setCoEl, coFr);
 });
 
+// ── ChillOut controls ──
+const coToggle = document.getElementById('co-toggle');
+const coSelect = document.getElementById('co-select');
+
+coToggle.addEventListener('change', () => {
+  if (coToggle.checked) {
+    coActive = true;
+    let sel = coSelect.options[coSelect.selectedIndex];
+    if (!sel?.value) {
+      const first = Array.from(coSelect.options).find(o => o.value);
+      if (first) { coSelect.value = first.value; sel = first; }
+    }
+    if (sel?.value) playAudioEl(sel.value, sel.textContent.trim(), getCoEl, setCoEl, coFr, getNsEl, setNsEl, nsFr);
+  } else {
+    coActive = false;
+    stopAudioEl(getCoEl, setCoEl, coFr, () => setNowPlaying(null));
+  }
+});
+coSelect.addEventListener('change', () => {
+  const sel = coSelect.options[coSelect.selectedIndex];
+  if (!sel?.value) { if (coActive) { stopAudioEl(getCoEl, setCoEl, coFr, () => setNowPlaying(null)); coToggle.checked = false; coActive = false; } return; }
+  if (coActive) playAudioEl(sel.value, sel.textContent.trim(), getCoEl, setCoEl, coFr, getNsEl, setNsEl, nsFr);
+});
+
+// ── Volume ──
 nsVolSlider.addEventListener('input', () => {
   const v = nsVolSlider.value;
   nsVolPct.textContent = v + '%';
   setRangeFill(nsVolSlider);
-  if (nsActive && nsAudioEl && !nsAudioEl.paused) nsAudioEl.volume = getNsVol();
+  const vol = getNsVol();
+  if (nsAudioEl && !nsAudioEl.paused) nsAudioEl.volume = vol;
+  if (coAudioEl && !coAudioEl.paused) coAudioEl.volume = vol;
 });
 setRangeFill(nsVolSlider);
 nsVolPct.textContent = nsVolSlider.value + '%';
 
-// ── Playback mode toggle ──
+// ── React intensity slider ──
+const reactSlider = document.getElementById('react-intensity');
+const reactPct    = document.getElementById('react-pct');
+let reactIntensity = 0.4; // default matches slider value 40
+
+reactSlider.addEventListener('input', () => {
+  reactIntensity = reactSlider.value / 100;
+  setRangeFill(reactSlider);
+  reactPct.textContent = reactSlider.value + '%';
+});
+setRangeFill(reactSlider);
+reactPct.textContent = reactSlider.value + '%';
+
+// ── Play mode ──
 const modeRepeat = document.getElementById('mode-repeat');
 const modeSeq    = document.getElementById('mode-seq');
-
 function setPlayMode(mode) {
   playMode = mode;
   modeRepeat.classList.toggle('active', mode === 'repeat');
   modeSeq.classList.toggle('active',    mode === 'seq');
-  // Apply loop change to running audio immediately
   if (nsAudioEl) nsAudioEl.loop = (mode === 'repeat');
+  if (coAudioEl) coAudioEl.loop = (mode === 'repeat');
 }
-
 modeRepeat.addEventListener('click', () => setPlayMode('repeat'));
 modeSeq.addEventListener('click',    () => setPlayMode('seq'));
 
 // ══════════════════════════════════════════════════════════════
-//  SOUND CONFIG PANEL  (editable URLs + add/delete + JSON IO)
+//  CONFIG PANELS — generic factory for NS and CO
 // ══════════════════════════════════════════════════════════════
-const LS_KEY   = 'zenorb_sounds_v1';
-const cfgBtn   = document.getElementById('ns-cfg-btn');
-const cfgPanel = document.getElementById('ns-config');
-const cfgSave  = document.getElementById('ns-cfg-save');
-const cfgActions = cfgPanel.querySelector('.ns-config-actions');
-
-// Build the list of editable rows from current <select> options
-function buildConfigRows() {
-  cfgPanel.querySelectorAll('.ns-config-row').forEach(r => r.remove());
-  Array.from(nsSelect.options).forEach((opt, i) => {
-    if (!opt.value) return;
-    cfgPanel.insertBefore(makeRow(opt.textContent.trim(), opt.value, i), cfgActions);
-  });
-}
-
-function makeRow(name, url, optIdx) {
-  const row = document.createElement('div');
-  row.className = 'ns-config-row';
-  row.dataset.idx = optIdx ?? ''; // '' = new row (not yet in select)
-  row.innerHTML = `
-    <span class="ns-config-idx">${optIdx != null ? String(optIdx).padStart(2,'0') : '+'}</span>
-    <input class="ns-config-name" type="text" value="${escHtml(name)}" placeholder="Nombre">
-    <input class="ns-config-url"  type="text" value="${escHtml(url)}"  placeholder="URL .mp3">
-    <button class="ns-del-btn" title="Eliminar">×</button>
-  `;
-  row.querySelector('.ns-del-btn').addEventListener('click', () => {
-    const idx = +row.dataset.idx;
-    if (!isNaN(idx) && nsSelect.options[idx]) nsSelect.remove(idx);
-    row.remove();
-    renumberRows();
-  });
-  return row;
-}
-
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 }
 
-function renumberRows() {
-  cfgPanel.querySelectorAll('.ns-config-row').forEach((r, i) => {
-    r.querySelector('.ns-config-idx').textContent = String(i + 1).padStart(2, '0');
-    r.dataset.idx = i + 1; // rough re-index; saveConfig rebuilds from scratch
-  });
-}
+function makeConfigSystem({ lsKey, selectEl, cfgPanelEl, cfgBtnEl, cfgSaveEl, addBtnId, exportBtnId, importBtnId, importFileId, exportFilename }) {
+  const cfgActions = cfgPanelEl.querySelector('.ns-config-actions');
 
-// Write config rows back into the <select> and persist
-function saveConfig() {
-  const rows = cfgPanel.querySelectorAll('.ns-config-row');
-  const data = [];
+  function buildRows() {
+    cfgPanelEl.querySelectorAll('.ns-config-row').forEach(r => r.remove());
+    Array.from(selectEl.options).forEach((opt, i) => {
+      if (!opt.value) return;
+      cfgPanelEl.insertBefore(makeRow(opt.textContent.trim(), opt.value, i), cfgActions);
+    });
+  }
 
-  // Rebuild select from scratch (handles adds + deletes cleanly)
-  const prevVal = nsSelect.value;
-  while (nsSelect.options.length > 1) nsSelect.remove(1); // keep "— SELECT —"
+  function makeRow(name, url, optIdx) {
+    const row = document.createElement('div');
+    row.className = 'ns-config-row';
+    row.dataset.idx = optIdx ?? '';
+    row.innerHTML = `
+      <span class="ns-config-idx">${optIdx != null ? String(optIdx).padStart(2,'0') : '+'}</span>
+      <input class="ns-config-name" type="text" value="${escHtml(name)}" placeholder="Nombre">
+      <input class="ns-config-url"  type="text" value="${escHtml(url)}"  placeholder="URL .mp3">
+      <button class="ns-del-btn" title="Eliminar">×</button>
+    `;
+    row.querySelector('.ns-del-btn').addEventListener('click', () => {
+      const idx = +row.dataset.idx;
+      if (!isNaN(idx) && selectEl.options[idx]) selectEl.remove(idx);
+      row.remove();
+      renumber();
+    });
+    return row;
+  }
 
-  rows.forEach(row => {
-    const name = row.querySelector('.ns-config-name').value.trim();
-    const url  = row.querySelector('.ns-config-url').value.trim();
-    if (!name || !url) return;
-    const opt = new Option(name, url);
-    nsSelect.add(opt);
-    data.push({ name, url });
-  });
+  function renumber() {
+    cfgPanelEl.querySelectorAll('.ns-config-row').forEach((r, i) => {
+      r.querySelector('.ns-config-idx').textContent = String(i + 1).padStart(2, '0');
+      r.dataset.idx = i + 1;
+    });
+  }
 
-  // Restore selection if URL still exists
-  nsSelect.value = prevVal;
+  function save() {
+    const rows = cfgPanelEl.querySelectorAll('.ns-config-row');
+    const data = [];
+    const prevVal = selectEl.value;
+    while (selectEl.options.length > 1) selectEl.remove(1);
+    rows.forEach(row => {
+      const name = row.querySelector('.ns-config-name').value.trim();
+      const url  = row.querySelector('.ns-config-url').value.trim();
+      if (!name || !url) return;
+      selectEl.add(new Option(name, url));
+      data.push({ name, url });
+    });
+    selectEl.value = prevVal;
+    try { localStorage.setItem(lsKey, JSON.stringify(data)); } catch(e) {}
+    cfgSaveEl.textContent = 'Guardado ✓';
+    setTimeout(() => cfgSaveEl.textContent = 'Guardar cambios', 1600);
+    buildRows();
+  }
 
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
-  cfgSave.textContent = 'Guardado ✓';
-  setTimeout(() => cfgSave.textContent = 'Guardar cambios', 1600);
-  buildConfigRows(); // refresh indices
-}
+  function loadFromData(data) {
+    while (selectEl.options.length > 1) selectEl.remove(1);
+    data.forEach(({ name, url }) => { if (name && url) selectEl.add(new Option(name, url)); });
+  }
 
-// Populate select from a data array [{name, url}]
-function loadDataIntoSelect(data) {
-  while (nsSelect.options.length > 1) nsSelect.remove(1);
-  data.forEach(({ name, url }) => {
-    if (name && url) nsSelect.add(new Option(name, url));
-  });
-}
-
-function loadSavedSounds() {
-  try {
-    const data = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
-    if (Array.isArray(data) && data.length) loadDataIntoSelect(data);
-  } catch(e) {}
-}
-loadSavedSounds();
-
-// ── Open / close config panel ──
-cfgBtn.addEventListener('click', () => {
-  const open = cfgPanel.classList.toggle('open');
-  cfgBtn.classList.toggle('active', open);
-  panel.classList.toggle('cfg-open', open);
-  if (open) buildConfigRows();
-});
-cfgSave.addEventListener('click', saveConfig);
-
-// ── Add new empty row ──
-document.getElementById('ns-add-btn').addEventListener('click', () => {
-  const row = makeRow('', '', null);
-  cfgPanel.insertBefore(row, cfgActions);
-  row.querySelector('.ns-config-name').focus();
-});
-
-// ── Export JSON ──
-document.getElementById('ns-export-btn').addEventListener('click', () => {
-  const data = Array.from(nsSelect.options)
-    .filter(o => o.value)
-    .map(o => ({ name: o.textContent.trim(), url: o.value }));
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'zenorb-sounds.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-});
-
-// ── Import JSON ──
-const importFileInput = document.getElementById('ns-import-file');
-document.getElementById('ns-import-btn').addEventListener('click', () => importFileInput.click());
-importFileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
+  function loadSaved() {
     try {
-      const data = JSON.parse(ev.target.result);
-      if (!Array.isArray(data)) throw new Error('Not an array');
-      loadDataIntoSelect(data);
-      try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(err) {}
-      if (cfgPanel.classList.contains('open')) buildConfigRows();
-    } catch(err) {
-      console.warn('JSON import error:', err);
-    }
-  };
-  reader.readAsText(file);
-  importFileInput.value = ''; // reset so same file can be re-imported
+      const data = JSON.parse(localStorage.getItem(lsKey) || 'null');
+      if (Array.isArray(data) && data.length) loadFromData(data);
+    } catch(e) {}
+  }
+  loadSaved();
+
+  cfgBtnEl.addEventListener('click', () => {
+    const open = cfgPanelEl.classList.toggle('open');
+    cfgBtnEl.classList.toggle('active', open);
+    panel.classList.toggle('cfg-open', open);
+    if (open) buildRows();
+  });
+  cfgSaveEl.addEventListener('click', save);
+
+  document.getElementById(addBtnId).addEventListener('click', () => {
+    const row = makeRow('', '', null);
+    cfgPanelEl.insertBefore(row, cfgActions);
+    row.querySelector('.ns-config-name').focus();
+  });
+
+  document.getElementById(exportBtnId).addEventListener('click', () => {
+    const data = Array.from(selectEl.options).filter(o => o.value).map(o => ({ name: o.textContent.trim(), url: o.value }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = exportFilename; a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  const importFile = document.getElementById(importFileId);
+  document.getElementById(importBtnId).addEventListener('click', () => importFile.click());
+  importFile.addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error();
+        loadFromData(data);
+        try { localStorage.setItem(lsKey, JSON.stringify(data)); } catch(err) {}
+        if (cfgPanelEl.classList.contains('open')) buildRows();
+      } catch(err) { console.warn('JSON import error:', err); }
+    };
+    reader.readAsText(file);
+    importFile.value = '';
+  });
+}
+
+makeConfigSystem({
+  lsKey: 'zenorb_sounds_v1',
+  selectEl: nsSelect, cfgPanelEl: document.getElementById('ns-config'),
+  cfgBtnEl: document.getElementById('ns-cfg-btn'), cfgSaveEl: document.getElementById('ns-cfg-save'),
+  addBtnId: 'ns-add-btn', exportBtnId: 'ns-export-btn', importBtnId: 'ns-import-btn',
+  importFileId: 'ns-import-file', exportFilename: 'zenorb-nature.json'
+});
+
+makeConfigSystem({
+  lsKey: 'zenorb_chillout_v1',
+  selectEl: coSelect, cfgPanelEl: document.getElementById('co-config'),
+  cfgBtnEl: document.getElementById('co-cfg-btn'), cfgSaveEl: document.getElementById('co-cfg-save'),
+  addBtnId: 'co-add-btn', exportBtnId: 'co-export-btn', importBtnId: 'co-import-btn',
+  importFileId: 'co-import-file', exportFilename: 'zenorb-chillout.json'
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -1195,29 +1340,22 @@ function connectAnalyser(audioEl) {
 
 // Update sound-reactive values each frame
 function tickSoundReactive() {
-  if (!nsActive || !nsAudioEl || nsAudioEl.paused) {
-    // Fade blend back to base over ~1s
-    if (soundBlendT > 0) {
-      soundBlendT = Math.max(0, soundBlendT - 0.008);
-      glowDirty = true;
-    }
+  const anyActive = (nsActive && nsAudioEl && !nsAudioEl.paused) || (coActive && coAudioEl && !coAudioEl.paused);
+
+  if (!anyActive) {
+    if (soundBlendT > 0) { soundBlendT = Math.max(0, soundBlendT - 0.008); glowDirty = true; }
     soundAmp = Math.max(0, soundAmp - 0.04);
     return;
   }
 
-  // Blend towards target palette (0→1 over ~120 frames ≈ 2s)
-  if (soundTargetCore && soundBlendT < 1) {
-    soundBlendT = Math.min(1, soundBlendT + 0.006);
-    glowDirty = true;
-  }
+  if (soundTargetCore && soundBlendT < 1) { soundBlendT = Math.min(1, soundBlendT + 0.006); glowDirty = true; }
 
-  // Simulated amplitude: smooth perlin-like noise tied to time
-  // This gives organic pulsing without needing CORS-unrestricted analyser access
   const t = performance.now() / 1000;
   const sim = (Math.sin(t * 2.3) * 0.5 + 0.5) * 0.4
             + (Math.sin(t * 5.7 + 1.1) * 0.5 + 0.5) * 0.3
             + (Math.sin(t * 11.3 + 2.4) * 0.5 + 0.5) * 0.3;
-  soundAmp += (sim * 0.6 - soundAmp) * 0.12;
+  // reactIntensity scales the raw amplitude (0 = no pulse, 1 = full)
+  soundAmp += (sim * reactIntensity - soundAmp) * 0.12;
   soundAmp = Math.max(0, Math.min(1, soundAmp));
 }
 
@@ -1256,10 +1394,11 @@ function effectiveColours() {
   }
 
   if (soundAmp > 0.01) {
-    const amp = soundAmp * 0.35;
-    ec = [Math.min(255, ec[0] + Math.round(amp * 80)),
-          Math.min(255, ec[1] + Math.round(amp * 80)),
-          Math.min(255, ec[2] + Math.round(amp * 40))];
+    // reactIntensity scales brightness boost (max: 140/90 at intensity=1)
+    const boost = soundAmp * reactIntensity;
+    ec = [Math.min(255, ec[0] + Math.round(boost * 140)),
+          Math.min(255, ec[1] + Math.round(boost * 140)),
+          Math.min(255, ec[2] + Math.round(boost * 90))];
   }
 
   return { core: ec, mid: em, edge: ee };
