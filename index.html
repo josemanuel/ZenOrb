@@ -395,7 +395,28 @@
   }
   .ns-now-playing.playing { color: var(--orb-core); }
 
-  /* ── Hide UI button ── */
+  /* ── Transport controls (prev/pause/next) ── */
+  .transport {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .transport-btn {
+    background: transparent;
+    border: 1px solid var(--text-dim);
+    border-radius: 2px;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    width: 22px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .transport-btn:hover { border-color: var(--orb-core); color: var(--orb-core); }
+  .transport-btn.playing { border-color: var(--orb-mid); color: var(--orb-mid); background: rgba(0,112,255,0.08); }
   #hide-ui-btn {
     position: fixed;
     bottom: 14px; right: 14px;
@@ -571,12 +592,18 @@
       <button class="ns-config-save" id="co-cfg-save">Guardar cambios</button>
     </div>
 
-    <!-- Playback mode + now-playing (shared) -->
+    <!-- Playback mode + transport + now-playing (shared) -->
     <div class="bar-row">
       <span class="bar-label">PLAY MODE</span>
       <div class="play-mode-wrap">
         <button class="play-mode-btn active" id="mode-repeat">↺ Repeat</button>
-        <button class="play-mode-btn" id="mode-seq">▶▶ Sequence</button>
+        <button class="play-mode-btn" id="mode-seq">▶▶ Seq</button>
+      </div>
+      <!-- Transport: prev / pause-play / next -->
+      <div class="transport">
+        <button class="transport-btn" id="tp-prev" title="Anterior">◂</button>
+        <button class="transport-btn" id="tp-play" title="Play/Pausa">▶</button>
+        <button class="transport-btn" id="tp-next" title="Siguiente">▸</button>
       </div>
       <span class="ns-now-playing" id="ns-now-playing">—</span>
     </div>
@@ -810,7 +837,7 @@ function update() {
 }
 
 function draw() {
-  const R = ORB.R * (1 + soundAmp * 0.10); // amplitude expands orb up to 10%
+  const R = ORB.R * (1 + soundAmp * reactIntensity * 0.28); // amplitude expands orb (up to 28% at full react)
   ctx.clearRect(0, 0, W, H);
 
   ctx.fillStyle = getGlow();
@@ -822,15 +849,18 @@ function draw() {
   ctx.strokeStyle = `rgba(${curCore},0.06)`; ctx.lineWidth = 0.5; ctx.stroke();
 
   drawn.forEach(d => {
-    const r     = lerp(0.8, 2.8, d.depth) + d.pulse * 2.5;
-    const alpha = Math.min(lerp(0.12, 0.9, d.depth) + d.pulse * 0.3, 1);
+    const sa = soundAmp * reactIntensity; // 0–1 reactive boost
+    const r     = lerp(0.8, 2.8, d.depth) + d.pulse * 2.5 + sa * 2.0;
+    const alpha = Math.min(lerp(0.12, 0.9, d.depth) + d.pulse * 0.3 + sa * 0.25, 1);
 
-    if (d.pulse > 0.05) {
-      const gp = ctx.createRadialGradient(d.sx, d.sy, 0, d.sx, d.sy, r*6);
-      gp.addColorStop(0,   `rgba(${curCore},${(d.pulse * 0.5).toFixed(3)})`);
-      gp.addColorStop(0.4, `rgba(${curMid},${(d.pulse * 0.25).toFixed(3)})`);
+    if (d.pulse > 0.05 || sa > 0.05) {
+      const glowR = r * (6 + sa * 5);
+      const pulseA = Math.max(d.pulse, sa * 0.6);
+      const gp = ctx.createRadialGradient(d.sx, d.sy, 0, d.sx, d.sy, glowR);
+      gp.addColorStop(0,   `rgba(${curCore},${(pulseA * 0.55).toFixed(3)})`);
+      gp.addColorStop(0.4, `rgba(${curMid},${(pulseA * 0.28).toFixed(3)})`);
       gp.addColorStop(1,   'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(d.sx, d.sy, r*6, 0, Math.PI*2);
+      ctx.beginPath(); ctx.arc(d.sx, d.sy, glowR, 0, Math.PI*2);
       ctx.fillStyle = gp; ctx.fill();
     }
 
@@ -1118,6 +1148,79 @@ function setPlayMode(mode) {
 }
 modeRepeat.addEventListener('click', () => setPlayMode('repeat'));
 modeSeq.addEventListener('click',    () => setPlayMode('seq'));
+
+// ══════════════════════════════════════════════════════════════
+//  TRANSPORT CONTROLS  (prev / play-pause / next)
+// ══════════════════════════════════════════════════════════════
+const tpPrev = document.getElementById('tp-prev');
+const tpPlay = document.getElementById('tp-play');
+const tpNext = document.getElementById('tp-next');
+
+function getActiveChannel() {
+  if (nsActive) return { getEl: getNsEl, setEl: setNsEl, frame: nsFr, otherGet: getCoEl, otherSet: setCoEl, otherFr: coFr, select: nsSelect, toggle: nsToggle };
+  if (coActive) return { getEl: getCoEl, setEl: setCoEl, frame: coFr, otherGet: getNsEl, otherSet: setNsEl, otherFr: nsFr, select: coSelect, toggle: coToggle };
+  return null;
+}
+
+function stepTrack(dir) {
+  const ch = getActiveChannel();
+  if (!ch) return;
+  const opts = Array.from(ch.select.options).filter(o => o.value);
+  if (!opts.length) return;
+  const curUrl = ch.getEl()?.src || ch.select.value || '';
+  // Decode URL for comparison (browser may encode the src)
+  const curIdx = opts.findIndex(o => decodeURIComponent(ch.getEl()?.src || '') === decodeURIComponent(o.value) || o.value === ch.select.value);
+  const next = opts[((curIdx < 0 ? 0 : curIdx) + dir + opts.length) % opts.length];
+  ch.select.value = next.value;
+  playAudioEl(next.value, next.textContent.trim(), ch.getEl, ch.setEl, ch.frame, ch.otherGet, ch.otherSet, ch.otherFr);
+}
+
+function updatePlayBtn() {
+  const ch = getActiveChannel();
+  const el = ch?.getEl();
+  const paused = !el || el.paused;
+  tpPlay.textContent = paused ? '▶' : '❙❙';
+  tpPlay.classList.toggle('playing', !paused);
+}
+
+tpPrev.addEventListener('click', () => stepTrack(-1));
+tpNext.addEventListener('click', () => stepTrack(+1));
+
+tpPlay.addEventListener('click', () => {
+  const ch = getActiveChannel();
+  if (!ch) {
+    // Nothing active — activate NS if it has tracks, else CO
+    const hasNs = Array.from(nsSelect.options).some(o => o.value);
+    const toggle = hasNs ? nsToggle : coToggle;
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+    return;
+  }
+  const el = ch.getEl();
+  if (!el || el.paused) {
+    // Resume or restart
+    if (el && el.src) {
+      el.play().then(updatePlayBtn).catch(() => {});
+    } else {
+      // Restart from first track
+      const opts = Array.from(ch.select.options).filter(o => o.value);
+      if (opts.length) {
+        ch.select.value = opts[0].value;
+        playAudioEl(opts[0].value, opts[0].textContent.trim(), ch.getEl, ch.setEl, ch.frame, ch.otherGet, ch.otherSet, ch.otherFr);
+      }
+    }
+  } else {
+    el.pause();
+  }
+  setTimeout(updatePlayBtn, 80); // slight delay so state settles
+});
+
+// Sync play button when tracks start/end
+function watchPlayState() {
+  updatePlayBtn();
+  requestAnimationFrame(watchPlayState);
+}
+requestAnimationFrame(watchPlayState);
 
 // ══════════════════════════════════════════════════════════════
 //  CONFIG PANELS — generic factory for NS and CO
